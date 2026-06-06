@@ -1,0 +1,52 @@
+[project]
+name = "novel-to-screenplay"
+version = "0.1.0"
+description = "AI 小说转剧本工具 — FastAPI 后端"
+requires-python = ">=3.11"
+authors = [
+    { name = "uYu", email = "702669879@qq.com" },
+]
+
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.34,<1",
+    "pydantic>=2.10,<3",
+    "pydantic-settings>=2.7,<3",
+    "python-multipart>=0.0.19",
+    "python-docx>=1.1,<2",
+    "httpx>=0.28,<1",
+    "pyyaml>=6.0,<7",
+]
+
+[tool.poetry]
+packages = [{ include = "app" }]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.3,<9"
+pytest-asyncio = ">=0.25,<1"
+pytest-cov = ">=6,<7"
+ruff = ">=0.11,<1"
+mypy = ">=1.14,<2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
