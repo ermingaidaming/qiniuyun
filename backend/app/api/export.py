@@ -27,7 +27,7 @@ def _content_disposition(filename: str) -> str:
 async def export_screenplay(
     screenplay_id: str,
     format: str = Query("txt", pattern="^(txt|docx|yaml)$"),
-):
+) -> Response:
     """Export a screenplay as TXT or DOCX file."""
     screenplay = await screenplay_service.get_screenplay(screenplay_id)
     if screenplay is None:

@@ -3,13 +3,14 @@ from __future__ import annotations
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.config import settings
+from app.models.novel import Novel
 from app.services import novel_service
 
 router = APIRouter(tags=["novels"])
 
 
 @router.post("/novels/upload")
-async def upload_novel(file: UploadFile = File(...)):  # noqa: B008
+async def upload_novel(file: UploadFile = File(...)) -> Novel:  # noqa: B008
     """Upload a TXT novel file, parse its chapters, and return the novel metadata."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
@@ -39,7 +40,7 @@ async def upload_novel(file: UploadFile = File(...)):  # noqa: B008
 
 
 @router.get("/novels/{novel_id}")
-async def get_novel(novel_id: str):
+async def get_novel(novel_id: str) -> Novel:
     """Get novel detail by ID."""
     novel = await novel_service.get_novel(novel_id)
     if novel is None:

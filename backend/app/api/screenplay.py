@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 
+from app.models.screenplay import Screenplay
 from app.services import novel_service, screenplay_service
 
 router = APIRouter(tags=["screenplay"])
@@ -15,7 +16,7 @@ class GenerateRequest(BaseModel):
 
 
 @router.post("/screenplay/generate")
-async def generate_screenplay(req: GenerateRequest):
+async def generate_screenplay(req: GenerateRequest) -> Screenplay:
     """Generate a screenplay from a previously uploaded novel."""
     novel = await novel_service.get_novel(req.novel_id)
     if novel is None:
@@ -31,7 +32,7 @@ async def generate_screenplay(req: GenerateRequest):
 
 
 @router.get("/screenplay/{screenplay_id}")
-async def get_screenplay(screenplay_id: str):
+async def get_screenplay(screenplay_id: str) -> Screenplay:
     """Get a generated screenplay by ID."""
     screenplay = await screenplay_service.get_screenplay(screenplay_id)
     if screenplay is None:
