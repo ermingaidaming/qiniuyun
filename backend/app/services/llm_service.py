@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Any, cast
 
 from httpx import AsyncClient
 
@@ -53,7 +54,7 @@ USER_PROMPT_TEMPLATE = """请将以下小说章节片段转化为剧本格式：
 """
 
 
-async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> list[dict]:
+async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> list[dict[str, Any]]:
     """Call LLM to convert a single chapter into screenplay scenes.
 
     Returns a list of scene dicts parsed from the LLM response.
@@ -91,15 +92,15 @@ async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> 
     return _parse_llm_json(raw)
 
 
-def _parse_llm_json(raw: str) -> list[dict]:
+def _parse_llm_json(raw: str) -> list[dict[str, Any]]:
     """Parse LLM response into a list of scene dicts. Handles common formatting issues."""
     # Try direct JSON parse first
     try:
-        result = json.loads(raw)
-        if isinstance(result, dict) and "scenes" in result:
-            return result["scenes"]
-        if isinstance(result, list):
-            return result
+        data = json.loads(raw)
+        if isinstance(data, dict) and "scenes" in data:
+            return cast(list[dict[str, Any]], data["scenes"])
+        if isinstance(data, list):
+            return cast(list[dict[str, Any]], data)
     except json.JSONDecodeError:
         pass
 
@@ -107,11 +108,11 @@ def _parse_llm_json(raw: str) -> list[dict]:
     code_block = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
     if code_block:
         try:
-            result = json.loads(code_block.group(1))
-            if isinstance(result, dict) and "scenes" in result:
-                return result["scenes"]
-            if isinstance(result, list):
-                return result
+            data = json.loads(code_block.group(1))
+            if isinstance(data, dict) and "scenes" in data:
+                return cast(list[dict[str, Any]], data["scenes"])
+            if isinstance(data, list):
+                return cast(list[dict[str, Any]], data)
         except json.JSONDecodeError:
             pass
 
@@ -120,22 +121,22 @@ def _parse_llm_json(raw: str) -> list[dict]:
     brace_end = raw.rfind("}")
     if brace_start != -1 and brace_end != -1:
         try:
-            result = json.loads(raw[brace_start : brace_end + 1])
-            if isinstance(result, dict) and "scenes" in result:
-                return result["scenes"]
+            data = json.loads(raw[brace_start : brace_end + 1])
+            if isinstance(data, dict) and "scenes" in data:
+                return cast(list[dict[str, Any]], data["scenes"])
         except json.JSONDecodeError:
             pass
 
     raise ValueError(f"Failed to parse LLM response as JSON. Raw: {raw[:200]}...")
 
 
-def _mock_convert(chapter_title: str, chapter_content: str) -> list[dict]:
+def _mock_convert(chapter_title: str, chapter_content: str) -> list[dict[str, Any]]:
     """Generate a mock scene when no LLM API key is configured.
 
     This ensures the pipeline works end-to-end for development and testing.
     """
     lines = [line.strip() for line in chapter_content.splitlines() if line.strip()]
-    elements: list[dict] = []
+    elements: list[dict[str, Any]] = []
 
     # Opening action
     elements.append({"type": "action", "content": f"{chapter_title}。场景开始。"})
