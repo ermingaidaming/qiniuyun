@@ -24,7 +24,9 @@ git push -u origin main
 
 建议远端仓库先设为私有，按比赛要求在提交截止后或评审前改为公开可访问。
 
-## 每个功能的 PR 流程
+## 每个功能大项的 PR 流程
+
+**首次创建分支：**
 
 ```powershell
 git switch main
@@ -32,7 +34,7 @@ git pull
 git switch -c feature/<short-feature-name>
 ```
 
-完成单一功能后：
+完成子功能后：
 
 ```powershell
 git add .
@@ -48,11 +50,15 @@ git push -u origin feature/<short-feature-name>
 - 依赖与原创说明
 - 截图或录屏
 
-合并后回到主分支：
+**合并后继续同功能开发：**
+
+PR 合并后，功能分支持续保留，不删除。后续同一功能大项下的子功能、修复和改进都在该分支上继续：
 
 ```powershell
-git switch main
-git pull
+git switch feature/<short-feature-name>
+git pull origin main        # 同步 main 最新代码
+# 继续开发该功能大项的下一个子功能...
+git push
 ```
 
 ## 多人协作要求
