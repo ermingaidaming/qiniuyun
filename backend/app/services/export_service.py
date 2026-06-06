@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 
 from docx import Document
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Inches, Pt
 
 from app.models.screenplay import Screenplay
@@ -47,7 +48,7 @@ def export_docx(screenplay: Screenplay) -> bytes:
 
     # Title
     title_para = doc.add_paragraph()
-    title_para.alignment = 1  # Center
+    title_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     title_run = title_para.add_run(screenplay.title)
     title_run.bold = True
     title_run.font.size = Pt(18)
@@ -69,7 +70,7 @@ def export_docx(screenplay: Screenplay) -> bytes:
 
             elif elem.type == "character":
                 para = doc.add_paragraph()
-                para.alignment = 1  # Center
+                para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                 run = para.add_run(elem.content)
                 run.bold = True
                 run.font.size = Pt(12)
