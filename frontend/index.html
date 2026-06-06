@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpeakFlow Coach</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Realtime AI Speaking Coach</p>
+          <h1>SpeakFlow Coach</h1>
+        </div>
+        <div class="status-pill" id="apiStatus">Checking API</div>
+      </header>
+
+      <section class="workspace" aria-label="AI speaking practice workspace">
+        <aside class="practice-panel">
+          <div class="field-group">
+            <label for="scenario">Scenario</label>
+            <select id="scenario">
+              <option value="daily">Daily conversation</option>
+              <option value="interview">Interview</option>
+              <option value="travel">Travel</option>
+              <option value="campus">Campus</option>
+            </select>
+          </div>
+
+          <div class="mic-block">
+            <div class="mic-meter" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <button id="micButton" type="button" class="primary-button">Start mic</button>
+            <p id="micState" class="muted">Microphone idle</p>
+          </div>
+
+          <div class="metrics-grid">
+            <div>
+              <span>VAD</span>
+              <strong id="vadState">Idle</strong>
+            </div>
+            <div>
+              <span>Turn</span>
+              <strong id="turnState">Ready</strong>
+            </div>
+            <div>
+              <span>Latency</span>
+              <strong id="latencyState">-- ms</strong>
+            </div>
+            <div>
+              <span>CEFR</span>
+              <strong id="cefrState">--</strong>
+            </div>
+          </div>
+        </aside>
+
+        <section class="conversation-panel">
+          <div class="prompt-row">
+            <div>
+              <p class="eyebrow">Practice Turn</p>
+              <h2>Answer and get instant feedback</h2>
+            </div>
+            <button id="sampleButton" type="button" class="secondary-button">Use sample</button>
+          </div>
+
+          <label class="sr-only" for="utterance">Practice answer</label>
+          <textarea
+            id="utterance"
+            rows="5"
+            placeholder="Type or dictate a short answer, for example: I am agree with this idea because it help me learn faster."
+          ></textarea>
+
+          <div class="actions">
+            <button id="sendButton" type="button" class="primary-button">Send turn</button>
+            <button id="clearButton" type="button" class="secondary-button">Clear</button>
+          </div>
+
+          <div class="feedback-grid">
+            <article class="result-box">
+              <p class="eyebrow">AI Reply</p>
+              <p id="aiReply">Waiting for your first practice turn.</p>
+            </article>
+            <article class="result-box">
+              <p class="eyebrow">Correction</p>
+              <p id="correction">No correction yet.</p>
+            </article>
+          </div>
+
+          <section class="feedback-list" aria-label="Feedback details">
+            <h3>Feedback</h3>
+            <ul id="feedbackItems">
+              <li>Submit a turn to generate speaking feedback.</li>
+            </ul>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/src/main.js" type="module"></script>
+  </body>
+</html>
