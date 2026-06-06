@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 import yaml
 
 from app.models.screenplay import Scene, SceneElement, Screenplay
 
 
-def _element_to_yaml_dict(elem: SceneElement) -> dict:
+def _element_to_yaml_dict(elem: SceneElement) -> dict[str, str]:
     """Convert a SceneElement to its ScreenYAML dict form, keyed by element type."""
     if elem.type == "action":
         return {"type": "action", "content": elem.content}
@@ -23,7 +24,7 @@ def _element_to_yaml_dict(elem: SceneElement) -> dict:
         return {"type": elem.type, "content": elem.content}
 
 
-def _scene_to_yaml_dict(scene: Scene) -> dict:
+def _scene_to_yaml_dict(scene: Scene) -> dict[str, Any]:
     """Convert a Scene to its ScreenYAML dict form."""
     return {
         "scene_id": scene.index,
@@ -55,7 +56,7 @@ def screenyaml_dumps(screenplay: Screenplay) -> str:
     class _LiteralStr(str):
         pass
 
-    def _literal_representer(dumper, data):
+    def _literal_representer(dumper: yaml.Dumper, data: str) -> Any:
         if "\n" in data:
             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
         return dumper.represent_scalar("tag:yaml.org,2002:str", data)
@@ -63,7 +64,7 @@ def screenyaml_dumps(screenplay: Screenplay) -> str:
     yaml.add_representer(_LiteralStr, _literal_representer)
 
     # Wrap multi-line content so YAML uses | block style
-    def _wrap_literal(obj):
+    def _wrap_literal(obj: Any) -> Any:
         if isinstance(obj, dict):
             return {k: _wrap_literal(v) for k, v in obj.items()}
         if isinstance(obj, list):
