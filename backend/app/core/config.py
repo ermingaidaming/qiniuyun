@@ -27,5 +27,9 @@ class Settings(BaseSettings):
     max_upload_size_bytes: int = 512_000  # 500KB
     max_chapter_length_chars: int = 16_000  # per chapter for LLM
 
+    # R2 sliding window
+    r2_window_size: int = 4000  # chars per window
+    r2_overlap_size: int = 800  # overlap between adjacent windows
+
 
 settings = Settings()

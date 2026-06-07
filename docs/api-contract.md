@@ -4,7 +4,7 @@
 >
 > **核心原则**：API 形状是本文件的"合约"。合约稳定期内，双方各自独立开发，不互相等待。
 >
-> 最后更新：2026-06-07 · 当前分支：`feat/screenyaml-mvp` · 后端 API: **8/11 端点**
+> 最后更新：2026-06-07 · 当前分支：`feat/screenyaml-mvp` · 后端 API: **12/12 端点**
 
 ---
 
@@ -35,6 +35,10 @@ feat/screenyaml-mvp                 feat/frontend-yaml
 | `GET` | `/api/novels/{id}` | 获取小说详情 | ✅ 稳定 |
 | `POST` | `/api/cpc/build` | 构建 CPC 因果图 | ✅ 稳定 |
 | `GET` | `/api/cpc/{novel_id}/graph` | 获取 DAG 因果图 | ✅ 稳定 |
+| `POST` | `/api/r2/scan` | R2 滑动窗口扫描 | ✅ 稳定 |
+| `GET` | `/api/r2/{novel_id}/result` | 获取 R2 改写结果 | ✅ 稳定 |
+| `POST` | `/api/har/refine` | HAR 幻觉检测与校正 | ✅ 稳定 |
+| `GET` | `/api/har/{novel_id}/report` | 获取 HAR 校正报告 | ✅ 稳定 |
 | `POST` | `/api/screenplay/generate` | 生成剧本 | ✅ 真实 LLM |
 | `GET` | `/api/screenplay/{id}` | 获取已生成剧本 | ✅ 稳定 |
 | `GET` | `/api/export/{id}?format=` | 导出剧本文件 | ✅ 稳定 |
@@ -219,6 +223,98 @@ interface CausalGraph {
 | `docx` | `.docx` | `application/vnd.openxmlformats...` | Word 文档 |
 | `yaml` | `.yaml` | `application/x-yaml; charset=utf-8` | ScreenYAML 结构化格式 |
 
+### 3.5 R2ScanResult（R2 滑动窗口改写结果）
+
+**后端** `app/models/r2.py`：
+
+```python
+class R2ScanRequest(BaseModel):
+    novel_id: str
+
+class R2ScanResult(BaseModel):
+    id: str               # UUID
+    novel_id: str         # 关联的小说 ID
+    scenes: list[Scene]   # 改写生成的场景（复用 Scene 模型，见 3.2）
+    window_count: int     # 滑动窗口数量
+    created_at: datetime  # ISO 8601 UTC
+```
+
+**前端** 应在 `types/index.ts` 中对应：
+
+```typescript
+interface R2ScanRequest {
+  novel_id: string;
+}
+
+interface R2ScanResult {
+  id: string;
+  novel_id: string;
+  scenes: Scene[];        // 复用 Scene 类型（见 3.2）
+  window_count: number;
+  created_at: string;     // ISO 8601
+}
+```
+
+### 3.6 HARReport（HAR 幻觉校正报告）
+
+**后端** `app/models/har.py`：
+
+```python
+class HARFinding(BaseModel):
+    scene_index: int                          # 场景序号
+    severity: Literal["critical", "major", "minor"]
+    category: Literal["character", "event", "dialogue", "setting", "detail"]
+    description: str                          # 问题描述
+    hallucinated_text: str = ""               # 剧本中的错误文本
+    suggested_fix: str = ""                   # 建议修正后的文本
+    source_evidence: str = ""                 # 原文引用证据
+
+class HARReport(BaseModel):
+    id: str                                   # UUID
+    novel_id: str                             # 关联的小说 ID
+    total_scenes: int                         # 检查的场景总数
+    total_findings: int                       # 发现的幻觉总数
+    findings: list[HARFinding]                # 幻觉详情列表
+    corrected_scenes: list[Scene]             # 修正后的场景（复用 Scene 模型）
+    verification_rounds: int                  # 自校正轮次
+    created_at: datetime                      # ISO 8601 UTC
+
+class HARRefineRequest(BaseModel):
+    novel_id: str
+```
+
+**前端** 应在 `types/index.ts` 中对应：
+
+```typescript
+type Severity = "critical" | "major" | "minor";
+type HARCategory = "character" | "event" | "dialogue" | "setting" | "detail";
+
+interface HARFinding {
+  scene_index: number;
+  severity: Severity;
+  category: HARCategory;
+  description: string;
+  hallucinated_text: string;
+  suggested_fix: string;
+  source_evidence: string;
+}
+
+interface HARReport {
+  id: string;
+  novel_id: string;
+  total_scenes: number;
+  total_findings: number;
+  findings: HARFinding[];
+  corrected_scenes: Scene[];   // 复用 Scene 类型
+  verification_rounds: number;
+  created_at: string;          // ISO 8601
+}
+
+interface HARRefineRequest {
+  novel_id: string;
+}
+```
+
 ---
 
 ## 4. API 详细合约
@@ -340,6 +436,103 @@ interface CausalGraph {
 错误响应 404: { "detail": "CPC graph not found" }
 ```
 
+### 4.8 POST /api/r2/scan
+
+```
+请求: application/json
+{
+  "novel_id": "uuid"
+}
+
+成功响应 200: R2ScanResult 对象
+{
+  "id": "uuid",
+  "novel_id": "uuid",
+  "scenes": [
+    {
+      "index": 1,
+      "setting": "古城城门口，清晨",
+      "location": "",
+      "time_of_day": "",
+      "source_chapter": 0,
+      "characters": [],
+      "elements": [
+        {"type": "action", "content": "清晨的阳光洒在古老的城墙上。", "character": null},
+        {"type": "character", "content": "赵云", "character": "赵云"},
+        {"type": "dialogue", "content": "说。", "character": "赵云"}
+      ]
+    }
+  ],
+  "window_count": 1,
+  "created_at": "2026-06-07T12:00:00Z"
+}
+
+错误响应:
+  404 - { "detail": "Novel not found" }
+
+注意:
+  - 使用滑动窗口（window=4000 字符，overlap=800）覆盖全部章节文本
+  - 每个窗口调用 LLM 改写为剧本场景，相邻窗口去重合并
+  - 幂等：同一 novel_id 多次调用返回同一个已生成的扫描结果
+  - 短文本（< 窗口大小）只生成一个窗口
+```
+
+### 4.9 GET /api/r2/{novel_id}/result
+
+```
+成功响应 200: R2ScanResult 对象（同上）
+错误响应 404: { "detail": "R2 scan not found" }
+```
+
+### 4.10 POST /api/har/refine
+
+```
+请求: application/json
+{
+  "novel_id": "uuid"
+}
+
+成功响应 200: HARReport 对象
+{
+  "id": "uuid",
+  "novel_id": "uuid",
+  "total_scenes": 3,
+  "total_findings": 2,
+  "findings": [
+    {
+      "scene_index": 1,
+      "severity": "major",
+      "category": "character",
+      "description": "角色'赵云'不存在于原文中，原文是'守将'",
+      "hallucinated_text": "赵云",
+      "suggested_fix": "守将",
+      "source_evidence": "原文：守将站在城门口，手握长枪"
+    }
+  ],
+  "corrected_scenes": [ ... ],
+  "verification_rounds": 2,
+  "created_at": "2026-06-07T12:00:00Z"
+}
+
+错误响应:
+  404 - { "detail": "Novel not found" }
+
+注意:
+  - 自动获取（或生成）剧本后逐场景对比原文，检测 5 类幻觉：
+    character / event / dialogue / setting / detail
+  - 严重程度：critical（影响剧情）/ major（重要错误）/ minor（小瑕疵）
+  - 自校正循环：检测 → 文本替换修正 → 再验证（最多 2 轮）
+  - 幂等：同一 novel_id 多次调用返回同一个报告
+  - 空 findings 表示未检测到幻觉
+```
+
+### 4.11 GET /api/har/{novel_id}/report
+
+```
+成功响应 200: HARReport 对象（同上）
+错误响应 404: { "detail": "HAR report not found" }
+```
+
 ---
 
 ## 5. 当前状态：哪些稳定、哪些在变
@@ -347,11 +540,11 @@ interface CausalGraph {
 | 范围 | 稳定性 | 说明 |
 |------|--------|------|
 | API 路径和方法 | ✅ 稳定 | 不会改 |
-| Novel / Screenplay / CausalGraph 字段 | ✅ 稳定 | 只增不减 |
+| Novel / Screenplay / CausalGraph / R2 / HAR 字段 | ✅ 稳定 | 只增不减 |
 | 响应状态码和错误格式 | ✅ 稳定 | `{ "detail": "..." }` |
-| CPC 事件抽取算法 | ⚠️ 在变 | LLM prompt 持续优化，不影响合约 |
-| Screenplay LLM 生成质量 | ⚠️ 在变 | prompt 持续调优 |
-| 新增 API（R2/HAR） | 📋 规划中 | 会新增端点，不影响现有端点 |
+| 滑动窗口参数 | ⚠️ 在变 | 可能调整 window_size / overlap |
+| CPC 事件抽取算法 | ⚠️ 在变 | LLM prompt 持续优化 |
+| HAR 幻觉检测精度 | ⚠️ 在变 | prompt 持续调优 |
 
 ---
 
@@ -359,19 +552,23 @@ interface CausalGraph {
 
 ### B 可以独立推进的工作（不依赖 A 当前进度）
 
-1. **同步前端类型** — 按第 3.1-3.3 节补全 TypeScript 类型定义（Novel / Screenplay / CausalGraph）
+1. **同步前端类型** — 按第 3.1-3.6 节补全 TypeScript 类型（Novel / Screenplay / CausalGraph / R2ScanResult / HARReport）
 2. **CPC DAG 可视化** — 后端 `GET /api/cpc/{novel_id}/graph` 已通，前端可做事件节点+关系边可视化
-3. **YAML 导出按钮** — 后端 `format=yaml` 已通，前端加个按钮即可
-4. **剧本预览增强** — 利用 `location`、`time_of_day`、`characters` 等新字段丰富页面展示
-5. **章节管理界面** — 基于 `Novel.chapters` 做章节列表和内容预览
-6. **错误处理 UI** — 各 API 的错误状态展示
-7. **上传体验优化** — 拖拽上传、进度条等
+3. **R2 改写预览** — 后端 `GET /api/r2/{novel_id}/result` 已通，前端可做滑动窗口改写结果预览
+4. **HAR 校正审核界面** — 后端 `POST /api/har/refine` + `GET /api/har/{novel_id}/report` 已通，前端可做幻觉标记高亮+修正审批
+5. **YAML 导出按钮** — 后端 `format=yaml` 已通，前端加个按钮即可
+6. **剧本预览增强** — 利用 `location`、`time_of_day`、`characters` 等新字段丰富页面展示
+7. **章节管理界面** — 基于 `Novel.chapters` 做章节列表和内容预览
+8. **错误处理 UI** — 各 API 的错误状态展示
+9. **上传体验优化** — 拖拽上传、进度条等
 
 ### A 当前正在做的事（B 不需要等）
 
 - 已完成：CPC 因果图构建算法 ✅
 - 已完成：真实 DeepSeek LLM 接入 ✅
-- 后续：实现 R2 / HAR 算法核心
+- 已完成：R2 滑动窗口改写引擎 ✅
+- 已完成：HAR 幻觉感知自校正引擎 ✅
+- 后续：端到端管道串联（CPC → R2 → HAR → ScreenYAML → 导出）
 
 ---
 
