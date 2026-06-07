@@ -2,7 +2,7 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-import type { CausalGraph, Novel, R2ScanResult, Screenplay } from "@/types";
+import type { CausalGraph, HARReport, Novel, R2ScanResult, Screenplay } from "@/types";
 
 export type ExportFormat = "txt" | "docx" | "yaml";
 
@@ -104,4 +104,17 @@ export async function r2Scan(novelId: string): Promise<R2ScanResult> {
 /** Get R2 scan result by novel ID. */
 export async function getR2Result(novelId: string): Promise<R2ScanResult> {
   return request<R2ScanResult>(`/api/r2/${novelId}/result`);
+}
+
+/** Run HAR hallucination detection and correction on a novel. */
+export async function harRefine(novelId: string): Promise<HARReport> {
+  return request<HARReport>("/api/har/refine", {
+    method: "POST",
+    body: JSON.stringify({ novel_id: novelId }),
+  });
+}
+
+/** Get HAR correction report by novel ID. */
+export async function getHarReport(novelId: string): Promise<HARReport> {
+  return request<HARReport>(`/api/har/${novelId}/report`);
 }
