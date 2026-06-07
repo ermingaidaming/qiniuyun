@@ -111,14 +111,11 @@ async def refine(novel: Novel) -> HARReport:
             await _db_save_report(session, report)
         return report
 
-    # Build chapter lookup
-    chapter_map = {ch.index: ch for ch in novel.chapters}
-
     all_findings: list[HARFinding] = []
     corrected_scenes = deepcopy(scenes)
 
     for round_num in range(1, MAX_VERIFICATION_ROUNDS + 1):
-        round_findings = await _detect_hallucinations(corrected_scenes, chapter_map, round_num)
+        round_findings = await _detect_hallucinations(corrected_scenes, novel, round_num)
         if not round_findings:
             break
         all_findings.extend(round_findings)
@@ -151,16 +148,30 @@ async def get_report(novel_id: str) -> HARReport | None:
 
 async def _detect_hallucinations(
     scenes: list[Scene],
-    chapter_map: dict[int, Any],
+    novel: Novel,
     round_num: int,
 ) -> list[HARFinding]:
-    """Detect hallucinations by comparing each scene against source text."""
+    """Detect hallucinations by comparing each scene against source text.
+
+    When source_chapter > 0, use the specific chapter as context.
+    When source_chapter == 0 (e.g. R2-generated scenes), fall back to full novel text.
+    """
     findings: list[HARFinding] = []
 
+    chapter_map: dict[int, Any] = {ch.index: ch for ch in novel.chapters}
+    full_text = "\n\n".join(ch.content for ch in novel.chapters)
+
     for scene in scenes:
-        chapter = chapter_map.get(scene.source_chapter)
-        if chapter is None:
-            continue
+        # Find source text by chapter; fall back to full text
+        chapter = chapter_map.get(scene.source_chapter) if scene.source_chapter > 0 else None
+        if chapter is not None:
+            source_text = chapter.content[: settings.max_chapter_length_chars]
+            chapter_index = chapter.index
+            chapter_title = chapter.title
+        else:
+            source_text = full_text[: settings.max_chapter_length_chars * 2]
+            chapter_index = 0
+            chapter_title = "全文"
 
         # Build scene text for LLM
         elements_text = "\n".join(
@@ -171,9 +182,9 @@ async def _detect_hallucinations(
             raw = await _call_llm(
                 HAR_SYSTEM_PROMPT,
                 HAR_USER_TEMPLATE.format(
-                    chapter_index=chapter.index,
-                    chapter_title=chapter.title,
-                    source_text=chapter.content[: settings.max_chapter_length_chars],
+                    chapter_index=chapter_index,
+                    chapter_title=chapter_title,
+                    source_text=source_text,
                     scene_index=scene.index,
                     setting=scene.setting,
                     location=scene.location,
