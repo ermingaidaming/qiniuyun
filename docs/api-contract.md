@@ -4,7 +4,7 @@
 >
 > **核心原则**：API 形状是本文件的"合约"。合约稳定期内，双方各自独立开发，不互相等待。
 >
-> 最后更新：2026-06-07 · 当前分支：`feat/screenyaml-mvp`
+> 最后更新：2026-06-07 · 当前分支：`feat/screenyaml-mvp` · 后端 API: **8/11 端点**
 
 ---
 
@@ -33,7 +33,9 @@ feat/screenyaml-mvp                 feat/frontend-yaml
 | `GET` | `/api/health` | 健康检查 | ✅ 稳定 |
 | `POST` | `/api/novels/upload` | 上传小说 TXT | ✅ 稳定 |
 | `GET` | `/api/novels/{id}` | 获取小说详情 | ✅ 稳定 |
-| `POST` | `/api/screenplay/generate` | 生成剧本 | ⚠️ 当前为 mock |
+| `POST` | `/api/cpc/build` | 构建 CPC 因果图 | ✅ 稳定 |
+| `GET` | `/api/cpc/{novel_id}/graph` | 获取 DAG 因果图 | ✅ 稳定 |
+| `POST` | `/api/screenplay/generate` | 生成剧本 | ✅ 真实 LLM |
 | `GET` | `/api/screenplay/{id}` | 获取已生成剧本 | ✅ 稳定 |
 | `GET` | `/api/export/{id}?format=` | 导出剧本文件 | ✅ 稳定 |
 
@@ -146,7 +148,70 @@ interface Screenplay {
 }
 ```
 
-### 3.3 导出格式
+### 3.3 CausalGraph（CPC 因果图）
+
+**后端** `app/models/cpc.py`：
+
+```python
+class Event(BaseModel):
+    id: str               # 事件 ID（确定性生成）
+    index: int            # 全局序号
+    chapter_index: int    # 来源章节序号
+    description: str      # 事件描述
+    characters: list[str] # 参与角色
+    location: str         # 发生地点
+    time: str             # 发生时间
+
+class CausalRelation(BaseModel):
+    id: str               # 关系 ID (UUID)
+    source_event_id: str  # 源事件 ID
+    target_event_id: str  # 目标事件 ID
+    relation_type: Literal["causes", "before", "references"]
+    confidence: float     # 置信度 0.0-1.0
+
+class CausalGraph(BaseModel):
+    id: str               # UUID
+    novel_id: str         # 关联的小说 ID
+    events: list[Event]
+    relations: list[CausalRelation]
+    dag_valid: bool       # DAG 是否有效（循环已破除则为 True）
+    created_at: datetime  # ISO 8601 UTC
+```
+
+**前端** 应在 `types/index.ts` 中对应：
+
+```typescript
+type RelationType = "causes" | "before" | "references";
+
+interface Event {
+  id: string;
+  index: number;
+  chapter_index: number;
+  description: string;
+  characters: string[];
+  location: string;
+  time: string;
+}
+
+interface CausalRelation {
+  id: string;
+  source_event_id: string;
+  target_event_id: string;
+  relation_type: RelationType;
+  confidence: number;
+}
+
+interface CausalGraph {
+  id: string;
+  novel_id: string;
+  events: Event[];
+  relations: CausalRelation[];
+  dag_valid: boolean;
+  created_at: string;  // ISO 8601
+}
+```
+
+### 3.4 导出格式
 
 | format 参数 | 文件类型 | Content-Type | 说明 |
 |---|---|---|---|
@@ -223,6 +288,58 @@ interface Screenplay {
 错误响应 404: { "detail": "Screenplay not found" }
 ```
 
+### 4.6 POST /api/cpc/build
+
+```
+请求: application/json
+{
+  "novel_id": "uuid"
+}
+
+成功响应 200: CausalGraph 对象
+{
+  "id": "uuid",
+  "novel_id": "uuid",
+  "events": [
+    {
+      "id": "abc123-e1",
+      "index": 1,
+      "chapter_index": 1,
+      "description": "孙悟空从石头中诞生",
+      "characters": ["孙悟空"],
+      "location": "花果山",
+      "time": "远古"
+    }
+  ],
+  "relations": [
+    {
+      "id": "uuid",
+      "source_event_id": "abc123-e1",
+      "target_event_id": "abc123-e2",
+      "relation_type": "causes",
+      "confidence": 0.9
+    }
+  ],
+  "dag_valid": true,
+  "created_at": "2026-06-07T12:00:00Z"
+}
+
+错误响应:
+  404 - { "detail": "Novel not found" }
+
+注意:
+  - 调用真实 LLM 进行事件抽取和关系识别
+  - 幂等：同一 novel_id 多次调用返回同一个已构建的图
+  - dag_valid 为 false 表示原始关系中存在循环，已被算法破除
+```
+
+### 4.7 GET /api/cpc/{novel_id}/graph
+
+```
+成功响应 200: CausalGraph 对象（同上）
+错误响应 404: { "detail": "CPC graph not found" }
+```
+
 ---
 
 ## 5. 当前状态：哪些稳定、哪些在变
@@ -230,11 +347,11 @@ interface Screenplay {
 | 范围 | 稳定性 | 说明 |
 |------|--------|------|
 | API 路径和方法 | ✅ 稳定 | 不会改 |
-| Novel / Screenplay 字段 | ✅ 稳定 | 只增不减 |
+| Novel / Screenplay / CausalGraph 字段 | ✅ 稳定 | 只增不减 |
 | 响应状态码和错误格式 | ✅ 稳定 | `{ "detail": "..." }` |
-| 后端内部服务实现 | ⚠️ 在变 | A 会重构，不影响合约 |
-| LLM 生成质量 | ⚠️ 在变 | 当前 mock，后续接入真实模型 |
-| 新增 API（CPC/R2/HAR） | 📋 规划中 | 会新增端点，不影响现有端点 |
+| CPC 事件抽取算法 | ⚠️ 在变 | LLM prompt 持续优化，不影响合约 |
+| Screenplay LLM 生成质量 | ⚠️ 在变 | prompt 持续调优 |
+| 新增 API（R2/HAR） | 📋 规划中 | 会新增端点，不影响现有端点 |
 
 ---
 
@@ -242,17 +359,19 @@ interface Screenplay {
 
 ### B 可以独立推进的工作（不依赖 A 当前进度）
 
-1. **同步前端类型** — 按第 3 节补全 TypeScript 类型定义
-2. **YAML 导出按钮** — 后端 `format=yaml` 已通，前端加个按钮即可
-3. **剧本预览增强** — 利用 `location`、`time_of_day`、`characters` 等新字段丰富页面展示
-4. **章节管理界面** — 基于 `Novel.chapters` 做章节列表和内容预览
-5. **错误处理 UI** — 各 API 的错误状态展示
-6. **上传体验优化** — 拖拽上传、进度条等
+1. **同步前端类型** — 按第 3.1-3.3 节补全 TypeScript 类型定义（Novel / Screenplay / CausalGraph）
+2. **CPC DAG 可视化** — 后端 `GET /api/cpc/{novel_id}/graph` 已通，前端可做事件节点+关系边可视化
+3. **YAML 导出按钮** — 后端 `format=yaml` 已通，前端加个按钮即可
+4. **剧本预览增强** — 利用 `location`、`time_of_day`、`characters` 等新字段丰富页面展示
+5. **章节管理界面** — 基于 `Novel.chapters` 做章节列表和内容预览
+6. **错误处理 UI** — 各 API 的错误状态展示
+7. **上传体验优化** — 拖拽上传、进度条等
 
 ### A 当前正在做的事（B 不需要等）
 
-- 修复 mypy 类型检查错误（纯后端代码质量，不影响 API）
-- 后续：实现 CPC / R2 / HAR 算法核心
+- 已完成：CPC 因果图构建算法 ✅
+- 已完成：真实 DeepSeek LLM 接入 ✅
+- 后续：实现 R2 / HAR 算法核心
 
 ---
 
