@@ -14,42 +14,65 @@ const TIME_ICONS: Record<string, string> = {
   "黎明": "🌄",
 };
 
-function SceneElementView({ elem }: { elem: { type: SceneElementType; content: string; character: string | null } }) {
-  switch (elem.type) {
-    // ── 动作描述：左对齐叙事性文字 ──
-    case "action":
-      return <p className="text-stone-700 leading-relaxed text-[15px]">{elem.content}</p>;
+function SceneContent({ elements }: { elements: { type: SceneElementType; content: string; character: string | null }[] }) {
+  // Group consecutive character+dialogue/parenthetical into speaking blocks
+  type Elem = { type: SceneElementType; content: string; character: string | null };
+  const blocks: { speaker: string | null; items: Elem[] }[] = [];
+  let currentSpeaker: string | null = null;
+  let currentItems: Elem[] = [];
 
-    // ── 角色出场：居中大字，剧本标准大写风格 ──
-    case "character":
-      return (
-        <p className="text-center text-base font-bold text-stone-900 tracking-[0.3em] mt-6 mb-1">
-          {elem.content}
-        </p>
-      );
-
-    // ── 括号提示：居中斜体 ──
-    case "parenthetical":
-      return (
-        <p className="text-center text-sm text-stone-500 italic mt-1 mb-1">
-          （{elem.content}）
-        </p>
-      );
-
-    // ── 对话：居中窄栏，标注说话人 ──
-    case "dialogue":
-      return (
-        <div className="flex flex-col items-center mt-1 mb-2">
-          <span className="text-xs text-stone-400 mb-0.5">{elem.character}</span>
-          <p className="max-w-md text-center text-stone-800 leading-relaxed">
-            {elem.content}
-          </p>
-        </div>
-      );
-
-    default:
-      return <p className="text-stone-700">{elem.content}</p>;
+  function flush() {
+    if (currentItems.length > 0) {
+      blocks.push({ speaker: currentSpeaker, items: [...currentItems] });
+      currentItems = [];
+    }
   }
+
+  for (const e of elements) {
+    if (e.type === "action") {
+      flush();
+      blocks.push({ speaker: null, items: [e] });
+    } else if (e.type === "character") {
+      flush();
+      currentSpeaker = e.content;
+    } else {
+      // dialogue / parenthetical
+      if (!currentSpeaker && e.character) currentSpeaker = e.character;
+      currentItems.push(e);
+    }
+  }
+  flush();
+
+  return (
+    <div className="space-y-5">
+      {blocks.map((block, bi) =>
+        block.speaker === null ? (
+          // ── Action ──
+          <p key={bi} className="text-stone-600 leading-relaxed text-[15px] indent-8">
+            {block.items[0]?.content}
+          </p>
+        ) : (
+          // ── Speaking Block ──
+          <div key={bi} className="flex flex-col items-center mt-5">
+            <p className="text-base font-bold text-stone-900 tracking-[0.2em] mb-1.5">
+              {block.speaker}
+            </p>
+            {block.items.map((item, ii) =>
+              item.type === "parenthetical" ? (
+                <p key={ii} className="text-sm text-stone-500 italic mb-1">
+                  （{item.content}）
+                </p>
+              ) : (
+                <p key={ii} className="max-w-md text-center text-stone-700 leading-relaxed mb-1.5">
+                  {item.content}
+                </p>
+              )
+            )}
+          </div>
+        )
+      )}
+    </div>
+  );
 }
 
 export default function ScreenplayPage() {
@@ -195,36 +218,25 @@ export default function ScreenplayPage() {
               <section key={scene.index} className="group">
 
                 {/* 场景标题行 */}
-                <div className="flex items-baseline gap-3 mb-4 pb-3 border-b border-stone-200">
-                  <span className="text-lg font-bold text-amber-700 tabular-nums">
-                    第{scene.index}场
-                  </span>
-                  <span className="text-stone-700 font-medium">
-                    {scene.setting}
-                  </span>
-                  <span className="ml-auto text-xs text-stone-400 flex items-center gap-2">
-                    {scene.location && <>📍 {scene.location}</>}
-                    {scene.time_of_day && <>{TIME_ICONS[scene.time_of_day] ?? ""} {scene.time_of_day}</>}
-                  </span>
-                </div>
-
-                {/* 出场角色标签 */}
-                {scene.characters.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {scene.characters.map((ch) => (
-                      <span key={ch} className="inline-block text-xs bg-stone-100 text-stone-600 rounded-full px-2.5 py-0.5">
-                        {ch}
-                      </span>
-                    ))}
+                <div className="mb-5 pb-3 border-b border-stone-200">
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className="text-lg font-bold text-amber-700 tabular-nums">
+                      第{scene.index}场
+                    </span>
+                    <span className="text-stone-700 font-medium text-lg">
+                      {scene.setting}
+                    </span>
                   </div>
-                )}
-
-                {/* 剧本元素：按 screenplay-industry 视觉规范 */}
-                <div className="space-y-3">
-                  {scene.elements.map((elem, i) => (
-                    <SceneElementView key={i} elem={elem} />
-                  ))}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-stone-400">
+                    {scene.location && <span>📍 {scene.location}</span>}
+                    {scene.time_of_day && <span>{TIME_ICONS[scene.time_of_day] ?? ""} {scene.time_of_day}</span>}
+                    {scene.source_chapter > 0 && <span>📖 源自第{scene.source_chapter}章</span>}
+                    <span className="ml-auto">{scene.elements.length} 个元素</span>
+                  </div>
                 </div>
+
+                {/* 剧本正文 —— 按角色分组 */}
+                <SceneContent elements={scene.elements} />
               </section>
             ))}
           </div>
