@@ -8,10 +8,10 @@ import { exportFile, generateScreenplay, getNovel } from "@/lib/api";
 import type { ExportFormat } from "@/lib/api";
 
 const TYPE_STYLES: Record<SceneElementType, string> = {
-  action: "text-ink leading-relaxed",
-  character: "text-center font-bold text-ink tracking-wider mt-4 text-sm",
-  dialogue: "mx-10 leading-relaxed text-ink/90",
-  parenthetical: "mx-14 text-sm text-ink-muted italic",
+  action: "text-stone-900 leading-relaxed",
+  character: "text-center font-bold text-stone-900 tracking-wider mt-4 text-sm",
+  dialogue: "mx-10 leading-relaxed text-stone-900/90",
+  parenthetical: "mx-14 text-sm text-stone-500 italic",
 };
 
 const TIME_ICONS: Record<string, string> = {
@@ -86,10 +86,10 @@ export default function ScreenplayPage() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <div className="flex items-center gap-2 text-ink-faint">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft animate-bounce" style={{ animationDelay: "0ms" }} />
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft animate-bounce" style={{ animationDelay: "150ms" }} />
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft animate-bounce" style={{ animationDelay: "300ms" }} />
+        <div className="flex items-center gap-2 text-stone-400">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "0ms" }} />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "150ms" }} />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
       </main>
     );
@@ -116,24 +116,24 @@ export default function ScreenplayPage() {
     <main className="flex flex-1 flex-col px-4 py-10 max-w-3xl mx-auto w-full">
       {/* Header */}
       <header className="mb-8">
-        <Link href="/" className="text-sm text-accent hover:text-accent/70 mb-2 inline-block transition-colors">
+        <Link href="/" className="text-sm text-amber-700 hover:text-amber-700/70 mb-2 inline-block transition-colors">
           ← 返回上传
         </Link>
-        <h1 className="text-2xl font-bold text-ink">{novel?.title}</h1>
-        <p className="text-ink-faint text-sm mt-1">
+        <h1 className="text-2xl font-bold text-stone-900">{novel?.title}</h1>
+        <p className="text-stone-400 text-sm mt-1">
           {novel?.chapters.length} 个章节 · {novel?.filename}
         </p>
       </header>
 
       {!screenplay ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center">
-          <p className="text-ink-muted mb-8 text-lg">
+        <div className="rounded-2xl border border-stone-200 bg-white p-10 text-center">
+          <p className="text-stone-500 mb-8 text-lg">
             AI 将为您的小说生成结构化剧本
           </p>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="rounded-xl bg-accent px-8 py-3.5 text-sm font-semibold text-white hover:bg-accent/85 disabled:opacity-50 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+            className="rounded-xl bg-amber-700 px-8 py-3.5 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
           >
             {generating ? "AI 正在生成剧本..." : "生成剧本"}
           </button>
@@ -142,11 +142,11 @@ export default function ScreenplayPage() {
       ) : (
         <>
           {/* Screenplay metadata */}
-          <div className="rounded-2xl border border-border bg-card p-6 mb-6">
-            <h2 className="text-xl font-bold text-center text-ink mb-4">
+          <div className="rounded-2xl border border-stone-200 bg-white p-6 mb-6">
+            <h2 className="text-xl font-bold text-center text-stone-900 mb-4">
               {screenplay.title}
             </h2>
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-ink-muted">
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-stone-500">
               {screenplay.source_novel && <span>原著：{screenplay.source_novel}</span>}
               {screenplay.novel_author && <span>作者：{screenplay.novel_author}</span>}
               <span>共 {screenplay.total_chapters || "?"} 章</span>
@@ -159,35 +159,35 @@ export default function ScreenplayPage() {
             <div className="flex gap-2 mr-auto">
               <Link
                 href={`/r2/${novelId}`}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-ink-muted hover:border-accent-soft hover:text-accent transition-all duration-200"
+                className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-amber-300 hover:text-amber-700 transition-all duration-200"
               >
                 R2 改写预览 →
               </Link>
               <Link
                 href={`/har/${novelId}`}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-ink-muted hover:border-accent-soft hover:text-accent transition-all duration-200"
+                className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-amber-300 hover:text-amber-700 transition-all duration-200"
               >
                 HAR 幻觉审核 →
               </Link>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => handleExport("txt")} className="rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-ink-muted hover:border-accent-soft hover:text-accent transition-all duration-200">TXT</button>
-              <button onClick={() => handleExport("docx")} className="rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-ink-muted hover:border-accent-soft hover:text-accent transition-all duration-200">Word</button>
-              <button onClick={() => handleExport("yaml")} className="rounded-lg border border-accent-soft bg-accent-soft/10 px-3.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent-soft/20 transition-all duration-200">YAML</button>
+              <button onClick={() => handleExport("txt")} className="rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-500 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">TXT</button>
+              <button onClick={() => handleExport("docx")} className="rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-500 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">Word</button>
+              <button onClick={() => handleExport("yaml")} className="rounded-lg border border-amber-300 bg-amber-100 px-3.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-all duration-200">YAML</button>
             </div>
-            <span className="text-xs text-ink-faint w-full text-right">{screenplay.scenes.length} 个场景</span>
+            <span className="text-xs text-stone-400 w-full text-right">{screenplay.scenes.length} 个场景</span>
           </div>
 
           {/* Scene list */}
           <div className="space-y-6">
             {screenplay.scenes.map((scene) => (
-              <section key={scene.index} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-ink border-b border-border pb-3 mb-4 flex items-baseline gap-2">
-                  <span className="text-ink-faint font-mono text-xs">#{scene.index}</span>
+              <section key={scene.index} className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-200 pb-3 mb-4 flex items-baseline gap-2">
+                  <span className="text-stone-400 font-mono text-xs">#{scene.index}</span>
                   {scene.setting && <span>{scene.setting}</span>}
                 </h3>
 
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint mb-4">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-400 mb-4">
                   {scene.location && <span>📍 {scene.location}</span>}
                   {scene.time_of_day && <span>{TIME_ICONS[scene.time_of_day] ?? "🕐"} {scene.time_of_day}</span>}
                   {scene.source_chapter > 0 && <span>📖 第 {scene.source_chapter} 章</span>}
@@ -196,7 +196,7 @@ export default function ScreenplayPage() {
 
                 <div className="space-y-1">
                   {scene.elements.map((elem, i) => {
-                    const cls = TYPE_STYLES[elem.type] ?? "text-ink";
+                    const cls = TYPE_STYLES[elem.type] ?? "text-stone-900";
                     if (elem.type === "parenthetical") {
                       return <p key={i} className={cls}>({elem.content})</p>;
                     }
@@ -208,8 +208,8 @@ export default function ScreenplayPage() {
           </div>
 
           {screenplay.scenes.length === 0 && (
-            <div className="rounded-2xl border border-border bg-card p-10 text-center">
-              <p className="text-ink-faint">暂无场景内容</p>
+            <div className="rounded-2xl border border-stone-200 bg-white p-10 text-center">
+              <p className="text-stone-400">暂无场景内容</p>
             </div>
           )}
         </>

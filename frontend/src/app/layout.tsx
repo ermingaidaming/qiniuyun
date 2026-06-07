@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "AI 小说转剧本工具",
@@ -23,12 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ colorScheme: "light" }}
-    >
-      <body className="min-h-full flex flex-col bg-paper text-ink">
+    <html lang="zh-CN" className="h-full antialiased" style={{ colorScheme: "light" }}>
+      <body style={{ background: "#faf7f0", color: "#2c2416" }} className="min-h-full flex flex-col">
         {children}
       </body>
     </html>

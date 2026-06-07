@@ -7,10 +7,10 @@ import type { Novel, R2ScanResult, SceneElementType } from "@/types";
 import { getNovel, r2Scan } from "@/lib/api";
 
 const TYPE_STYLES: Record<SceneElementType, string> = {
-  action: "text-ink leading-relaxed",
-  character: "text-center font-bold text-ink tracking-wider mt-4 text-sm",
-  dialogue: "mx-10 leading-relaxed text-ink/90",
-  parenthetical: "mx-14 text-sm text-ink-muted italic",
+  action: "text-stone-900 leading-relaxed",
+  character: "text-center font-bold text-stone-900 tracking-wider mt-4 text-sm",
+  dialogue: "mx-10 leading-relaxed text-stone-900/90",
+  parenthetical: "mx-14 text-sm text-stone-500 italic",
 };
 
 export default function R2Page() {
@@ -60,10 +60,10 @@ export default function R2Page() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <div className="flex items-center gap-2 text-ink-faint">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft animate-bounce" style={{ animationDelay: "0ms" }} />
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft animate-bounce" style={{ animationDelay: "150ms" }} />
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft animate-bounce" style={{ animationDelay: "300ms" }} />
+        <div className="flex items-center gap-2 text-stone-400">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "0ms" }} />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "150ms" }} />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
       </main>
     );
@@ -84,22 +84,22 @@ export default function R2Page() {
   return (
     <main className="flex flex-1 flex-col px-4 py-10 max-w-3xl mx-auto w-full">
       <header className="mb-8">
-        <Link href={`/screenplay/${novelId}`} className="text-sm text-accent hover:text-accent/70 mb-2 inline-block transition-colors">
+        <Link href={`/screenplay/${novelId}`} className="text-sm text-amber-700 hover:text-amber-700/70 mb-2 inline-block transition-colors">
           ← 返回剧本
         </Link>
-        <h1 className="text-2xl font-bold text-ink">R2 滑动窗口改写预览</h1>
-        <p className="text-ink-faint text-sm mt-1">{novel?.title} · {novel?.chapters.length} 个章节</p>
+        <h1 className="text-2xl font-bold text-stone-900">R2 滑动窗口改写预览</h1>
+        <p className="text-stone-400 text-sm mt-1">{novel?.title} · {novel?.chapters.length} 个章节</p>
       </header>
 
       {!result ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center">
-          <p className="text-ink-muted mb-2 text-lg">R2 滑动窗口扫描引擎</p>
-          <p className="text-ink-faint text-sm mb-3">窗口 4000 字符，重叠 800 字符，逐块 LLM 改写</p>
-          <p className="text-ink-faint text-xs mb-8">相邻窗口自动去重合并，确保场景连贯</p>
+        <div className="rounded-2xl border border-stone-200 bg-white p-10 text-center">
+          <p className="text-stone-500 mb-2 text-lg">R2 滑动窗口扫描引擎</p>
+          <p className="text-stone-400 text-sm mb-3">窗口 4000 字符，重叠 800 字符，逐块 LLM 改写</p>
+          <p className="text-stone-400 text-xs mb-8">相邻窗口自动去重合并，确保场景连贯</p>
           <button
             onClick={handleScan}
             disabled={scanning}
-            className="rounded-xl bg-accent px-8 py-3.5 text-sm font-semibold text-white hover:bg-accent/85 disabled:opacity-50 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+            className="rounded-xl bg-amber-700 px-8 py-3.5 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
           >
             {scanning ? "R2 正在扫描改写..." : "开始 R2 扫描"}
           </button>
@@ -107,8 +107,8 @@ export default function R2Page() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl border border-border bg-card p-5 mb-6">
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-ink-muted">
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 mb-6">
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-stone-500">
               <span>{result.scenes.length} 个场景</span>
               <span>{result.window_count} 个窗口</span>
             </div>
@@ -116,17 +116,17 @@ export default function R2Page() {
 
           <div className="space-y-6">
             {result.scenes.map((scene) => (
-              <section key={scene.index} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-ink border-b border-border pb-3 mb-4 flex items-baseline gap-2">
-                  <span className="text-ink-faint font-mono text-xs">#{scene.index}</span>
+              <section key={scene.index} className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-200 pb-3 mb-4 flex items-baseline gap-2">
+                  <span className="text-stone-400 font-mono text-xs">#{scene.index}</span>
                   {scene.setting && <span>{scene.setting}</span>}
                 </h3>
                 {scene.characters.length > 0 && (
-                  <div className="text-xs text-ink-faint mb-4">🎭 {scene.characters.join("、")}</div>
+                  <div className="text-xs text-stone-400 mb-4">🎭 {scene.characters.join("、")}</div>
                 )}
                 <div className="space-y-1">
                   {scene.elements.map((elem, i) => {
-                    const cls = TYPE_STYLES[elem.type] ?? "text-ink";
+                    const cls = TYPE_STYLES[elem.type] ?? "text-stone-900";
                     if (elem.type === "parenthetical") return <p key={i} className={cls}>({elem.content})</p>;
                     return <p key={i} className={cls}>{elem.content}</p>;
                   })}
@@ -136,8 +136,8 @@ export default function R2Page() {
           </div>
 
           {result.scenes.length === 0 && (
-            <div className="rounded-2xl border border-border bg-card p-10 text-center">
-              <p className="text-ink-faint">R2 未生成场景，请确认小说内容不为空</p>
+            <div className="rounded-2xl border border-stone-200 bg-white p-10 text-center">
+              <p className="text-stone-400">R2 未生成场景，请确认小说内容不为空</p>
             </div>
           )}
         </>
