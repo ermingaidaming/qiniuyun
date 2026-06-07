@@ -190,3 +190,36 @@ class R2SceneElementTable(Base):
     position: Mapped[int] = mapped_column(Integer, default=0)
 
     scene: Mapped[R2SceneTable] = relationship("R2SceneTable", back_populates="elements")
+
+
+class HARReportTable(Base):
+    __tablename__ = "har_reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    novel_id: Mapped[str] = mapped_column(String(36), ForeignKey("novels.id"), unique=True, nullable=False)
+    total_scenes: Mapped[int] = mapped_column(Integer, default=0)
+    total_findings: Mapped[int] = mapped_column(Integer, default=0)
+    verification_rounds: Mapped[int] = mapped_column(Integer, default=0)
+    corrected_scenes: Mapped[list[dict[str, object]]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+    novel: Mapped[NovelTable] = relationship("NovelTable")
+    findings: Mapped[list[HARFindingTable]] = relationship(
+        "HARFindingTable", back_populates="report", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class HARFindingTable(Base):
+    __tablename__ = "har_findings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    report_id: Mapped[str] = mapped_column(String(36), ForeignKey("har_reports.id"), nullable=False)
+    scene_index: Mapped[int] = mapped_column(Integer)
+    severity: Mapped[str] = mapped_column(String(10))
+    category: Mapped[str] = mapped_column(String(20))
+    description: Mapped[str] = mapped_column(String)
+    hallucinated_text: Mapped[str] = mapped_column(String, default="")
+    suggested_fix: Mapped[str] = mapped_column(String, default="")
+    source_evidence: Mapped[str] = mapped_column(String, default="")
+
+    report: Mapped[HARReportTable] = relationship("HARReportTable", back_populates="findings")

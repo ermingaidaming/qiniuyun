@@ -35,6 +35,7 @@ async def generate_screenplay(novel: Novel) -> Screenplay:
                     Scene(
                         index=scene_index,
                         setting=raw.get("setting", chapter.title),
+                        source_chapter=chapter.index,
                         elements=elements,
                     )
                 )
@@ -45,9 +46,7 @@ async def generate_screenplay(novel: Novel) -> Screenplay:
                 Scene(
                     index=scene_index,
                     setting=f"第{chapter.index}章（生成失败）",
-                    elements=[
-                        SceneElement(type="action", content=f"本章生成出错: {exc}")
-                    ],
+                    elements=[SceneElement(type="action", content=f"本章生成出错: {exc}")],
                 )
             )
 
