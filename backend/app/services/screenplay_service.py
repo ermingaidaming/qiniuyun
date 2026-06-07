@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from app.core.config import settings
+from app.db.engine import async_session
+from app.db.repository.screenplays import get_screenplay as _db_get_screenplay
+from app.db.repository.screenplays import get_screenplay_by_novel as _db_get_screenplay_by_novel
+from app.db.repository.screenplays import save_screenplay as _db_save_screenplay
 from app.models.novel import Novel
 from app.models.screenplay import Scene, SceneElement, Screenplay
 from app.services.llm_service import convert_chapter_to_scene
-
-# In-memory storage (replace with database in future PR)
-_screenplays: dict[str, Screenplay] = {}
 
 
 async def generate_screenplay(novel: Novel) -> Screenplay:
@@ -58,18 +59,18 @@ async def generate_screenplay(novel: Novel) -> Screenplay:
         generated_by=settings.llm_model if settings.llm_api_key else "mock",
         scenes=all_scenes,
     )
-    _screenplays[screenplay.id] = screenplay
+    async with async_session() as session:
+        await _db_save_screenplay(session, screenplay)
     return screenplay
 
 
 async def get_screenplay(screenplay_id: str) -> Screenplay | None:
     """Get a screenplay by ID."""
-    return _screenplays.get(screenplay_id)
+    async with async_session() as session:
+        return await _db_get_screenplay(session, screenplay_id)
 
 
 async def get_screenplay_by_novel(novel_id: str) -> Screenplay | None:
     """Get the screenplay for a given novel ID."""
-    for sp in _screenplays.values():
-        if sp.novel_id == novel_id:
-            return sp
-    return None
+    async with async_session() as session:
+        return await _db_get_screenplay_by_novel(session, novel_id)

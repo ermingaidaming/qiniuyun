@@ -3,10 +3,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from app.db.engine import async_session
+from app.db.repository.novels import get_novel as _db_get_novel
+from app.db.repository.novels import save_novel as _db_save_novel
 from app.models.novel import Chapter, Novel
-
-# In-memory storage (replace with database in future PR)
-_novels: dict[str, Novel] = {}
 
 # Chapter title patterns: "第X章", "Chapter X", "第X节", blank-line separated blocks
 _CHAPTER_PATTERNS = [
@@ -87,10 +87,12 @@ async def parse_novel(filename: str, content: str) -> Novel:
     ]
 
     novel = Novel(title=title, filename=filename, chapters=chapters)
-    _novels[novel.id] = novel
+    async with async_session() as session:
+        await _db_save_novel(session, novel)
     return novel
 
 
 async def get_novel(novel_id: str) -> Novel | None:
     """Get a novel by ID."""
-    return _novels.get(novel_id)
+    async with async_session() as session:
+        return await _db_get_novel(session, novel_id)

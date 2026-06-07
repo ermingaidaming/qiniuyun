@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.deepseek.com/v1"
     llm_model: str = "deepseek-chat"
 
+    # Database
+    database_url: str = "sqlite+aiosqlite:///./data.db"
+
     # Limits
     max_upload_size_bytes: int = 512_000  # 500KB
     max_chapter_length_chars: int = 16_000  # per chapter for LLM

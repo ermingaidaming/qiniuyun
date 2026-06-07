@@ -21,3 +21,14 @@ coverage/
 
 tmp/
 temp/
+
+# Database (runtime data, not source code)
+*.db
+
+# MCP & local config (may contain keys)
+.mcp.json
+.claude/settings.local.json
+
+# Credentials
+cookies.txt
+credentials.*

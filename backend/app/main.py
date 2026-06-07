@@ -8,14 +8,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import router as api_router
 from app.core.config import settings
+from app.db.engine import engine
+from app.db.tables import Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown events."""
-    # Startup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
-    # Shutdown
+    await engine.dispose()
 
 
 app = FastAPI(
