@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Novel, Screenplay, SceneElementType } from "@/types";
-import { exportUrl, generateScreenplay, getNovel, getScreenplay } from "@/lib/api";
+import { exportUrl, generateScreenplay, getNovel } from "@/lib/api";
 
 const TYPE_STYLES: Record<SceneElementType, string> = {
   action: "text-zinc-700 leading-relaxed",
@@ -22,22 +23,39 @@ export default function ScreenplayPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load novel and check for existing screenplay
-  const load = useCallback(async () => {
-    try {
-      const n = await getNovel(novelId);
-      setNovel(n);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load novel");
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const n = await getNovel(novelId);
+        if (!cancelled) {
+          setNovel(n);
+          setError(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load novel");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [novelId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  function handleRetry() {
+    setLoading(true);
+    getNovel(novelId)
+      .then((n) => {
+        setNovel(n);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Failed to load novel");
+      })
+      .finally(() => setLoading(false));
+  }
 
   async function handleGenerate() {
     setGenerating(true);
@@ -72,7 +90,7 @@ export default function ScreenplayPage() {
           <p className="font-semibold mb-2">加载失败</p>
           <p>{error}</p>
           <button
-            onClick={load}
+            onClick={handleRetry}
             className="mt-4 text-red-600 underline hover:text-red-800"
           >
             重试
@@ -86,9 +104,9 @@ export default function ScreenplayPage() {
     <main className="flex flex-1 flex-col px-4 py-8 max-w-3xl mx-auto w-full">
       {/* Header */}
       <header className="mb-8">
-        <a href="/" className="text-sm text-teal-600 hover:text-teal-700 mb-2 inline-block">
+        <Link href="/" className="text-sm text-teal-600 hover:text-teal-700 mb-2 inline-block">
           ← 返回上传
-        </a>
+        </Link>
         <h1 className="text-2xl font-bold text-zinc-900">{novel?.title}</h1>
         <p className="text-sm text-zinc-500 mt-1">
           {novel?.chapters.length} 个章节 · {novel?.filename}
