@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Novel, Screenplay, SceneElementType } from "@/types";
-import { exportUrl, generateScreenplay, getNovel } from "@/lib/api";
+import { exportFile, generateScreenplay, getNovel } from "@/lib/api";
+import type { ExportFormat } from "@/lib/api";
 
 const TYPE_STYLES: Record<SceneElementType, string> = {
   action: "text-zinc-700 leading-relaxed",
@@ -70,9 +71,9 @@ export default function ScreenplayPage() {
     }
   }
 
-  async function handleExport(format: "txt" | "docx") {
+  async function handleExport(format: ExportFormat) {
     if (!screenplay) return;
-    window.open(exportUrl(screenplay.id, format), "_blank");
+    await exportFile(screenplay.id, format);
   }
 
   if (loading) {
@@ -145,6 +146,12 @@ export default function ScreenplayPage() {
               className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               导出 Word
+            </button>
+            <button
+              onClick={() => handleExport("yaml")}
+              className="rounded-lg border border-teal-300 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50 transition-colors"
+            >
+              导出 YAML
             </button>
             <span className="text-xs text-zinc-400 self-center ml-auto">
               {screenplay.scenes.length} 个场景
