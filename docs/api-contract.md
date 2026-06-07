@@ -4,7 +4,7 @@
 >
 > **核心原则**：API 形状是本文件的"合约"。合约稳定期内，双方各自独立开发，不互相等待。
 >
-> 最后更新：2026-06-07 · 当前分支：`feat/screenyaml-mvp` · 后端 API: **12/12 端点**
+> 最后更新：2026-06-07 · 当前分支：`feat/screenyaml-mvp` · 后端 API: **13/13 端点**
 
 ---
 
@@ -39,6 +39,7 @@ feat/screenyaml-mvp                 feat/frontend-yaml
 | `GET` | `/api/r2/{novel_id}/result` | 获取 R2 改写结果 | ✅ 稳定 |
 | `POST` | `/api/har/refine` | HAR 幻觉检测与校正 | ✅ 稳定 |
 | `GET` | `/api/har/{novel_id}/report` | 获取 HAR 校正报告 | ✅ 稳定 |
+| `POST` | `/api/pipeline/run` | 一键执行全流水线 CPC→R2→HAR→ScreenYAML | ✅ 稳定 |
 | `POST` | `/api/screenplay/generate` | 生成剧本 | ✅ 真实 LLM |
 | `GET` | `/api/screenplay/{id}` | 获取已生成剧本 | ✅ 稳定 |
 | `GET` | `/api/export/{id}?format=` | 导出剧本文件 | ✅ 稳定 |
@@ -315,6 +316,56 @@ interface HARRefineRequest {
 }
 ```
 
+### 3.7 PipelineRunResult（流水线执行结果）
+
+**后端** `app/models/pipeline.py`：
+
+```python
+class StepStatus(str, Enum):
+    pending = "pending"
+    completed = "completed"
+    failed = "failed"
+
+class PipelineStep(BaseModel):
+    name: str                   # "cpc" | "r2" | "har" | "screenyaml"
+    status: StepStatus
+    error: str | None = None
+
+class PipelineRunRequest(BaseModel):
+    novel_id: str
+
+class PipelineRunResult(BaseModel):
+    novel_id: str
+    status: str                 # "completed" | "partial"
+    steps: list[PipelineStep]
+    screenyaml: str | None = None
+    screenplay_id: str | None = None
+```
+
+**前端** TypeScript：
+
+```typescript
+type StepStatus = "pending" | "completed" | "failed";
+
+interface PipelineStep {
+  name: string;
+  status: StepStatus;
+  error: string | null;
+}
+
+interface PipelineRunRequest {
+  novel_id: string;
+}
+
+interface PipelineRunResult {
+  novel_id: string;
+  status: string;
+  steps: PipelineStep[];
+  screenyaml: string | null;
+  screenplay_id: string | null;
+}
+```
+
 ---
 
 ## 4. API 详细合约
@@ -533,6 +584,50 @@ interface HARRefineRequest {
 错误响应 404: { "detail": "HAR report not found" }
 ```
 
+### 4.12 POST /api/pipeline/run
+
+```
+请求: application/json
+{
+  "novel_id": "uuid"
+}
+
+成功响应 200: PipelineRunResult 对象
+{
+  "novel_id": "uuid",
+  "status": "completed",
+  "steps": [
+    {"name": "cpc", "status": "completed", "error": null},
+    {"name": "r2", "status": "completed", "error": null},
+    {"name": "har", "status": "completed", "error": null},
+    {"name": "screenyaml", "status": "completed", "error": null}
+  ],
+  "screenyaml": "meta:\n  title: ...\nscenes:\n  ...",
+  "screenplay_id": "uuid"
+}
+
+部分失败响应 (status 200):
+{
+  "novel_id": "uuid",
+  "status": "partial",
+  "steps": [
+    {"name": "cpc", "status": "completed", "error": null},
+    {"name": "r2", "status": "failed", "error": "LLM timeout"}
+  ],
+  "screenyaml": null,
+  "screenplay_id": null
+}
+
+错误响应:
+  404 - { "detail": "Novel not found" }
+
+注意:
+  - 按顺序串联执行 CPC → R2 → HAR → ScreenYAML 全流程
+  - 每个步骤独立幂等——重复调用同一 novel_id 会跳过已完成步骤
+  - 步骤失败时返回 "partial" 状态，已完成的步骤结果已持久化
+  - 可在失败后直接重试，未完成的步骤会自动继续
+```
+
 ---
 
 ## 5. 当前状态：哪些稳定、哪些在变
@@ -540,7 +635,7 @@ interface HARRefineRequest {
 | 范围 | 稳定性 | 说明 |
 |------|--------|------|
 | API 路径和方法 | ✅ 稳定 | 不会改 |
-| Novel / Screenplay / CausalGraph / R2 / HAR 字段 | ✅ 稳定 | 只增不减 |
+| Novel / Screenplay / CausalGraph / R2 / HAR / Pipeline 字段 | ✅ 稳定 | 只增不减 |
 | 响应状态码和错误格式 | ✅ 稳定 | `{ "detail": "..." }` |
 | 滑动窗口参数 | ⚠️ 在变 | 可能调整 window_size / overlap |
 | CPC 事件抽取算法 | ⚠️ 在变 | LLM prompt 持续优化 |
@@ -552,23 +647,22 @@ interface HARRefineRequest {
 
 ### B 可以独立推进的工作（不依赖 A 当前进度）
 
-1. **同步前端类型** — 按第 3.1-3.6 节补全 TypeScript 类型（Novel / Screenplay / CausalGraph / R2ScanResult / HARReport）
-2. **CPC DAG 可视化** — 后端 `GET /api/cpc/{novel_id}/graph` 已通，前端可做事件节点+关系边可视化
-3. **R2 改写预览** — 后端 `GET /api/r2/{novel_id}/result` 已通，前端可做滑动窗口改写结果预览
-4. **HAR 校正审核界面** — 后端 `POST /api/har/refine` + `GET /api/har/{novel_id}/report` 已通，前端可做幻觉标记高亮+修正审批
-5. **YAML 导出按钮** — 后端 `format=yaml` 已通，前端加个按钮即可
-6. **剧本预览增强** — 利用 `location`、`time_of_day`、`characters` 等新字段丰富页面展示
-7. **章节管理界面** — 基于 `Novel.chapters` 做章节列表和内容预览
-8. **错误处理 UI** — 各 API 的错误状态展示
-9. **上传体验优化** — 拖拽上传、进度条等
+1. **同步前端类型** — 按第 3.1-3.7 节补全 TypeScript 类型
+2. **一键转换按钮** — 后端 `POST /api/pipeline/run` 已通，前端可做"一键转换"按钮 + 步骤进度展示
+3. **CPC DAG 可视化** — 后端 `GET /api/cpc/{novel_id}/graph` 已通
+4. **R2 改写预览** — 后端 `GET /api/r2/{novel_id}/result` 已通
+5. **HAR 校正审核界面** — 后端 HAR 端点已通
+6. **YAML 导出按钮** — 后端 `format=yaml` 已通
+7. **剧本预览增强** — 利用新字段丰富页面展示
+8. **错误处理 UI** — 各 API 的错误状态展示，含流水线步骤级错误
 
 ### A 当前正在做的事（B 不需要等）
 
 - 已完成：CPC 因果图构建算法 ✅
-- 已完成：真实 DeepSeek LLM 接入 ✅
 - 已完成：R2 滑动窗口改写引擎 ✅
 - 已完成：HAR 幻觉感知自校正引擎 ✅
-- 后续：端到端管道串联（CPC → R2 → HAR → ScreenYAML → 导出）
+- 已完成：端到端流水线串联 ✅
+- 后续：流水线稳定性优化、性能调优
 
 ---
 
