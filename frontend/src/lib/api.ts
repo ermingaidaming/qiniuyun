@@ -23,6 +23,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+/** Health check. */
+export async function getHealth(): Promise<{ status: string }> {
+  return request<{ status: string }>("/api/health");
+}
+
 /** Upload a novel TXT file and get parsed chapters. */
 export async function uploadNovel(file: File): Promise<Novel> {
   const formData = new FormData();
