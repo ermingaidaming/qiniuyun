@@ -29,6 +29,12 @@ async def build_causal_graph(novel: Novel) -> CausalGraph:
     3. Remove cycles to ensure DAG validity
     4. Persist and return
     """
+    # Idempotent: return existing graph if already built
+    async with async_session() as session:
+        existing = await _db_get_graph(session, novel.id)
+        if existing is not None:
+            return existing
+
     # ── 1. Event Extraction ──────────────────────────────────────────
     all_events: list[Event] = []
     event_idx = 0

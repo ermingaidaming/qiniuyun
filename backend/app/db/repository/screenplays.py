@@ -103,5 +103,21 @@ def _scene_id(screenplay_id: str, index: int) -> str:
     return f"{screenplay_id}-s{index}"
 
 
+async def replace_screenplay(session: AsyncSession, screenplay: Screenplay) -> None:
+    """Delete any existing screenplay for the novel, then insert the new one.
+
+    Used by the pipeline to overwrite screenplay scenes after R2 generation
+    and after HAR correction — ensures ScreenYAML always reads the latest version.
+    """
+    existing = await session.execute(
+        select(ScreenplayTable).where(ScreenplayTable.novel_id == screenplay.novel_id)
+    )
+    row = existing.scalar_one_or_none()
+    if row is not None:
+        await session.delete(row)
+        await session.flush()
+    await save_screenplay(session, screenplay)
+
+
 def _element_id(screenplay_id: str, scene_index: int, elem_index: int) -> str:
     return f"{screenplay_id}-s{scene_index}-e{elem_index}"
