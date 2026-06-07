@@ -92,7 +92,11 @@ async def scan_novel(novel: Novel) -> R2ScanResult:
                         win["index"],
                         Scene(
                             index=scene_counter,
-                            setting=raw_scene.get("setting", f"窗口 {win['index'] + 1}"),
+                            setting=raw_scene.get("setting", ""),
+                            location=raw_scene.get("location", ""),
+                            time_of_day=raw_scene.get("time", ""),
+                            source_chapter=raw_scene.get("source_chapter", win.get("source_chapter", 0)),
+                            characters=raw_scene.get("characters", []),
                             elements=elements,
                         ),
                     )
@@ -106,6 +110,7 @@ async def scan_novel(novel: Novel) -> R2ScanResult:
                     Scene(
                         index=scene_counter,
                         setting=f"窗口 {win['index'] + 1}（处理失败）",
+                        source_chapter=win.get("source_chapter", 0),
                         elements=[SceneElement(type="action", content="此窗口处理出错，已跳过。")],
                     ),
                 )
@@ -147,20 +152,39 @@ def _build_windows(
 ) -> list[dict[str, Any]]:
     """Build overlapping sliding windows from chapter texts.
 
-    Returns a list of dicts with keys: index, text.
+    Returns a list of dicts with keys: index, text, source_chapter.
+    source_chapter is the chapter index that contains the window's midpoint.
     """
+    if not chapters:
+        return []
+
     # Concatenate all chapter texts with separators
-    parts: list[str] = []
-    for ch in chapters:
-        parts.append(ch.content)
+    parts: list[str] = [ch.content for ch in chapters]
     full_text = "\n\n".join(parts).strip()
 
     if not full_text:
         return []
 
+    # Track chapter start positions in the concatenated text
+    chapter_starts: list[tuple[int, int]] = []  # (char_pos, chapter_index)
+    offset = 0
+    for i, ch in enumerate(chapters):
+        chapter_starts.append((offset, ch.index))
+        offset += len(ch.content)
+        if i < len(chapters) - 1:
+            offset += 2  # "\n\n" separator
+
+    def _chapter_at(text_pos: int) -> int:
+        """Return the chapter index that contains the given text position."""
+        best = chapters[0].index
+        for start, ch_idx in chapter_starts:
+            if start <= text_pos:
+                best = ch_idx
+        return best
+
     # Short text: use a single window
     if len(full_text) <= window_size:
-        return [{"index": 0, "text": full_text}]
+        return [{"index": 0, "text": full_text, "source_chapter": chapters[0].index}]
 
     step = max(window_size - overlap, 1)  # ensure positive step
     windows: list[dict[str, Any]] = []
@@ -172,7 +196,13 @@ def _build_windows(
         # Skip tiny trailing windows
         if len(window_text.strip()) < 100:
             break
-        windows.append({"index": win_idx, "text": window_text})
+        # Use the chapter containing this window's midpoint
+        mid_pos = pos + len(window_text) // 2
+        windows.append({
+            "index": win_idx,
+            "text": window_text,
+            "source_chapter": _chapter_at(mid_pos),
+        })
         win_idx += 1
         pos += step
 

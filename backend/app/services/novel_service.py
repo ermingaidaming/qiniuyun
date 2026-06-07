@@ -10,8 +10,8 @@ from app.models.novel import Chapter, Novel
 
 # Chapter title patterns: "第X章", "Chapter X", "第X节", blank-line separated blocks
 _CHAPTER_PATTERNS = [
-    re.compile(r"^第[零一二三四五六七八九十百千万\d]+[章节回].*", re.MULTILINE),
-    re.compile(r"^Chapter\s+\d+.*", re.MULTILINE | re.IGNORECASE),
+    re.compile(r"^\s*第[零一二三四五六七八九十百千万\d]+[章节回].*", re.MULTILINE),
+    re.compile(r"^\s*Chapter\s+\d+.*", re.MULTILINE | re.IGNORECASE),
 ]
 
 _MIN_CHAPTER_LENGTH = 50  # characters

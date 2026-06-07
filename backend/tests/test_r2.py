@@ -159,16 +159,19 @@ def test_build_windows() -> None:
 
     # Create mock chapters
     class MockChapter:
-        def __init__(self, content: str):
+        def __init__(self, index: int, content: str):
+            self.index = index
             self.content = content
 
     short_text = "A" * 300 + " " + "B" * 300 + " " + "C" * 300
-    chapters = [MockChapter(short_text)]
+    chapters = [MockChapter(1, short_text)]
     windows = _build_windows(chapters, window_size=400, overlap=100)
 
     assert len(windows) > 1
     # First window should have content
     assert len(windows[0]["text"]) > 0
+    # Windows should have source_chapter
+    assert "source_chapter" in windows[0]
     # Windows should be sequential
     for i in range(len(windows)):
         assert windows[i]["index"] == i
