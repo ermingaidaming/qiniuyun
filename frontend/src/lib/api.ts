@@ -2,7 +2,7 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-import type { Novel, Screenplay } from "@/types";
+import type { CausalGraph, Novel, Screenplay } from "@/types";
 
 export type ExportFormat = "txt" | "docx" | "yaml";
 
@@ -78,4 +78,17 @@ export async function exportFile(id: string, format: ExportFormat): Promise<void
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(blobUrl);
+}
+
+/** Build CPC causal graph from a novel. */
+export async function buildCpc(novelId: string): Promise<CausalGraph> {
+  return request<CausalGraph>("/api/cpc/build", {
+    method: "POST",
+    body: JSON.stringify({ novel_id: novelId }),
+  });
+}
+
+/** Get CPC causal graph by novel ID. */
+export async function getCpcGraph(novelId: string): Promise<CausalGraph> {
+  return request<CausalGraph>(`/api/cpc/${novelId}/graph`);
 }
