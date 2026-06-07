@@ -1,5 +1,5 @@
 // API contract types — keep in sync with backend Pydantic models
-// 最后同步：docs/api-contract.md 3.1-3.6 节
+// 最后同步：docs/api-contract.md 3.1-3.7 节
 
 export interface Chapter {
   id: string;
@@ -119,4 +119,26 @@ export interface HARReport {
 
 export interface HARRefineRequest {
   novel_id: string;
+}
+
+// --- Pipeline 流水线类型 ---
+
+export type StepStatus = "pending" | "completed" | "failed";
+
+export interface PipelineStep {
+  name: string;
+  status: StepStatus;
+  error: string | null;
+}
+
+export interface PipelineRunRequest {
+  novel_id: string;
+}
+
+export interface PipelineRunResult {
+  novel_id: string;
+  status: string;
+  steps: PipelineStep[];
+  screenyaml: string | null;
+  screenplay_id: string | null;
 }
