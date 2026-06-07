@@ -1,5 +1,5 @@
 // API contract types — keep in sync with backend Pydantic models
-// 最后同步：docs/api-contract.md 3.1-3.3 节
+// 最后同步：docs/api-contract.md 3.1-3.6 节
 
 export interface Chapter {
   id: string;
@@ -75,4 +75,48 @@ export interface CausalGraph {
   relations: CausalRelation[];
   dag_valid: boolean;
   created_at: string;
+}
+
+// --- R2 滑动窗口改写类型 ---
+
+export interface R2ScanRequest {
+  novel_id: string;
+}
+
+export interface R2ScanResult {
+  id: string;
+  novel_id: string;
+  scenes: Scene[];
+  window_count: number;
+  created_at: string;
+}
+
+// --- HAR 幻觉校正类型 ---
+
+export type Severity = "critical" | "major" | "minor";
+export type HARCategory = "character" | "event" | "dialogue" | "setting" | "detail";
+
+export interface HARFinding {
+  scene_index: number;
+  severity: Severity;
+  category: HARCategory;
+  description: string;
+  hallucinated_text: string;
+  suggested_fix: string;
+  source_evidence: string;
+}
+
+export interface HARReport {
+  id: string;
+  novel_id: string;
+  total_scenes: number;
+  total_findings: number;
+  findings: HARFinding[];
+  corrected_scenes: Scene[];
+  verification_rounds: number;
+  created_at: string;
+}
+
+export interface HARRefineRequest {
+  novel_id: string;
 }
