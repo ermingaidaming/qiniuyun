@@ -159,6 +159,22 @@ export default function ScreenplayPage() {
             </div>
           </div>
 
+          {/* Pipeline navigation */}
+          <div className="flex gap-2 mb-4">
+            <Link
+              href={`/r2/${novelId}`}
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
+            >
+              R2 改写预览 →
+            </Link>
+            <Link
+              href={`/har/${novelId}`}
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
+            >
+              HAR 幻觉审核 →
+            </Link>
+          </div>
+
           {/* Export toolbar */}
           <div className="flex gap-3 mb-6">
             <button
