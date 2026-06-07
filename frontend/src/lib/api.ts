@@ -2,7 +2,7 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-import type { CausalGraph, Novel, Screenplay } from "@/types";
+import type { CausalGraph, Novel, R2ScanResult, Screenplay } from "@/types";
 
 export type ExportFormat = "txt" | "docx" | "yaml";
 
@@ -91,4 +91,17 @@ export async function buildCpc(novelId: string): Promise<CausalGraph> {
 /** Get CPC causal graph by novel ID. */
 export async function getCpcGraph(novelId: string): Promise<CausalGraph> {
   return request<CausalGraph>(`/api/cpc/${novelId}/graph`);
+}
+
+/** Run R2 sliding window scan on a novel. */
+export async function r2Scan(novelId: string): Promise<R2ScanResult> {
+  return request<R2ScanResult>("/api/r2/scan", {
+    method: "POST",
+    body: JSON.stringify({ novel_id: novelId }),
+  });
+}
+
+/** Get R2 scan result by novel ID. */
+export async function getR2Result(novelId: string): Promise<R2ScanResult> {
+  return request<R2ScanResult>(`/api/r2/${novelId}/result`);
 }
