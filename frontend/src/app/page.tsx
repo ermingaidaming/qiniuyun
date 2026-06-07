@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { uploadNovel } from "@/lib/api";
 
 export default function Home() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,20 +21,7 @@ export default function Home() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("http://localhost:8000/api/novels/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || "Upload failed");
-      }
-
-      const data = await response.json();
+      const data = await uploadNovel(file);
       setResult({
         novelId: data.id,
         title: data.title,
@@ -72,9 +62,7 @@ export default function Home() {
               </p>
               <div className="flex gap-3 justify-center pt-2">
                 <button
-                  onClick={() => {
-                    window.location.href = `/screenplay/${result.novelId}`;
-                  }}
+                  onClick={() => router.push(`/screenplay/${result.novelId}`)}
                   className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
                 >
                   生成剧本
