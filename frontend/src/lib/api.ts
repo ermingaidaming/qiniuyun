@@ -55,3 +55,22 @@ export async function getScreenplay(id: string): Promise<Screenplay> {
 export function exportUrl(id: string, format: ExportFormat): string {
   return `${BASE_URL}/api/export/${id}?format=${format}`;
 }
+
+/** Download a screenplay export file (triggers browser download). */
+export async function exportFile(id: string, format: ExportFormat): Promise<void> {
+  const url = exportUrl(id, format);
+  const response = await fetch(url);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Export failed" }));
+    throw new Error(error.detail ?? `HTTP ${response.status}`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `screenplay.${format === "yaml" ? "yaml" : format}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
+}
