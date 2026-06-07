@@ -2,7 +2,7 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-import type { CausalGraph, HARReport, Novel, R2ScanResult, Screenplay } from "@/types";
+import type { CausalGraph, HARReport, Novel, PipelineRunResult, R2ScanResult, Screenplay } from "@/types";
 
 export type ExportFormat = "txt" | "docx" | "yaml";
 
@@ -117,4 +117,12 @@ export async function harRefine(novelId: string): Promise<HARReport> {
 /** Get HAR correction report by novel ID. */
 export async function getHarReport(novelId: string): Promise<HARReport> {
   return request<HARReport>(`/api/har/${novelId}/report`);
+}
+
+/** Execute the full CPC → R2 → HAR → ScreenYAML pipeline. */
+export async function runPipeline(novelId: string): Promise<PipelineRunResult> {
+  return request<PipelineRunResult>("/api/pipeline/run", {
+    method: "POST",
+    body: JSON.stringify({ novel_id: novelId }),
+  });
 }
