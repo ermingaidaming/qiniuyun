@@ -2,18 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { uploadNovel } from "@/lib/api";
+import { runPipeline, uploadNovel } from "@/lib/api";
+import type { PipelineRunResult, PipelineStep } from "@/types";
+
+const STEP_LABELS: Record<string, string> = {
+  cpc: "CPC 因果图构建",
+  r2: "R2 滑动窗口扫描",
+  har: "HAR 幻觉校正",
+  screenyaml: "ScreenYAML 生成",
+};
 
 export default function Home() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
     novelId: string;
     title: string;
     chapterCount: number;
   } | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineRunResult | null>(null);
 
   async function handleUpload() {
     if (!file) return;
@@ -33,6 +43,28 @@ export default function Home() {
       setUploading(false);
     }
   }
+
+  async function handleGenerate() {
+    if (!result) return;
+    setRunning(true);
+    setError(null);
+    setPipeline(null);
+
+    try {
+      const r = await runPipeline(result.novelId);
+      setPipeline(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Pipeline failed");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  const stepIcon = (s: PipelineStep) => {
+    if (s.status === "completed") return "✅";
+    if (s.status === "failed") return "❌";
+    return "⏳";
+  };
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
@@ -65,19 +97,81 @@ export default function Home() {
                   共 {result.chapterCount} 个章节
                 </p>
               </div>
+
+              {/* Pipeline progress */}
+              {pipeline ? (
+                <div className="space-y-2 pt-2">
+                  {pipeline.steps.map((s) => (
+                    <div
+                      key={s.name}
+                      className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs ${
+                        s.status === "failed"
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : s.status === "completed"
+                            ? "border-green-200 bg-green-50 text-green-700"
+                            : "border-stone-200 bg-stone-50 text-stone-500"
+                      }`}
+                    >
+                      <span>
+                        {stepIcon(s)} {STEP_LABELS[s.name] ?? s.name}
+                      </span>
+                      {s.error && <span className="text-red-500 ml-2 truncate max-w-32">{s.error}</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : running ? (
+                <div className="pt-2 space-y-1">
+                  <p className="text-sm text-stone-500 animate-pulse">AI 正在处理小说...</p>
+                  <div className="flex justify-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-200 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex gap-3 justify-center pt-3">
-                <button
-                  onClick={() => router.push(`/screenplay/${result.novelId}`)}
-                  className="rounded-xl bg-amber-700 px-6 py-3 text-sm font-semibold text-white hover:bg-amber-800 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                >
-                  生成剧本
-                </button>
+                {!pipeline ? (
+                  <button
+                    onClick={handleGenerate}
+                    disabled={running}
+                    className="rounded-xl bg-amber-700 px-6 py-3 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                  >
+                    {running ? "Pipeline 运行中..." : "生成剧本"}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => router.push(`/screenplay/${result.novelId}`)}
+                      className="rounded-xl bg-amber-700 px-6 py-3 text-sm font-semibold text-white hover:bg-amber-800 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                    >
+                      查看剧本
+                    </button>
+                    {pipeline.screenyaml && (
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([pipeline.screenyaml!], { type: "text/yaml" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "screenplay.yaml";
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="rounded-xl border border-amber-300 px-6 py-3 text-sm font-semibold text-amber-700 hover:bg-amber-50 transition-all duration-200 active:scale-[0.98]"
+                      >
+                        下载 YAML
+                      </button>
+                    )}
+                  </>
+                )}
                 <button
                   onClick={() => {
                     setResult(null);
                     setFile(null);
+                    setPipeline(null);
                   }}
-                  className="rounded-xl border border-stone-200 px-6 py-3 text-sm font-semibold text-stone-500 hover:bg-stone-100 transition-all duration-200 active:scale-[0.98]"
+                  className="rounded-xl border border-stone-200 px-4 py-3 text-sm font-semibold text-stone-500 hover:bg-stone-100 transition-all duration-200 active:scale-[0.98]"
                 >
                   重新上传
                 </button>
