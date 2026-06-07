@@ -4,6 +4,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 import type { Novel, Screenplay } from "@/types";
 
+export type ExportFormat = "txt" | "docx" | "yaml";
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -50,6 +52,6 @@ export async function getScreenplay(id: string): Promise<Screenplay> {
 }
 
 /** Build the export download URL. */
-export function exportUrl(id: string, format: "txt" | "docx"): string {
+export function exportUrl(id: string, format: ExportFormat): string {
   return `${BASE_URL}/api/export/${id}?format=${format}`;
 }
