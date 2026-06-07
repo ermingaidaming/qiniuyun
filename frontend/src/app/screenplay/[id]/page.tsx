@@ -14,6 +14,13 @@ const TYPE_STYLES: Record<SceneElementType, string> = {
   parenthetical: "mx-12 text-sm text-zinc-500 italic",
 };
 
+const TIME_ICONS: Record<string, string> = {
+  "日": "☀️",
+  "夜": "🌙",
+  "黄昏": "🌅",
+  "黎明": "🌄",
+};
+
 export default function ScreenplayPage() {
   const params = useParams();
   const novelId = params.id as string;
@@ -133,6 +140,25 @@ export default function ScreenplayPage() {
         </div>
       ) : (
         <>
+          {/* Screenplay metadata */}
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 mb-6">
+            <h2 className="text-xl font-bold text-center text-zinc-900 mb-4">
+              {screenplay.title}
+            </h2>
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-zinc-500">
+              {screenplay.source_novel && (
+                <span>原著：{screenplay.source_novel}</span>
+              )}
+              {screenplay.novel_author && (
+                <span>作者：{screenplay.novel_author}</span>
+              )}
+              <span>共 {screenplay.total_chapters || "?"} 章</span>
+              {screenplay.generated_by && (
+                <span>生成引擎：{screenplay.generated_by}</span>
+              )}
+            </div>
+          </div>
+
           {/* Export toolbar */}
           <div className="flex gap-3 mb-6">
             <button
@@ -158,54 +184,61 @@ export default function ScreenplayPage() {
             </span>
           </div>
 
-          {/* Screenplay content */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-8 space-y-10">
-            <h2 className="text-xl font-bold text-center text-zinc-900">
-              {screenplay.title}
-            </h2>
-
+          {/* Scene list */}
+          <div className="space-y-8">
             {screenplay.scenes.map((scene) => (
-              <section key={scene.index} className="space-y-2">
-                <h3 className="text-sm font-bold text-zinc-900 border-b border-zinc-100 pb-2">
-                  场景 {scene.index}: {scene.setting}
+              <section key={scene.index} className="rounded-xl border border-zinc-200 bg-white p-6">
+                {/* Scene header */}
+                <h3 className="text-sm font-bold text-zinc-900 border-b border-zinc-100 pb-3 mb-4">
+                  场景 {scene.index}
+                  {scene.setting && <>: {scene.setting}</>}
                 </h3>
 
-                {scene.elements.map((elem, i) => {
-                  const baseStyle = TYPE_STYLES[elem.type] ?? "text-zinc-700";
-                  if (elem.type === "character") {
+                {/* Scene metadata */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-400 mb-4">
+                  {scene.location && (
+                    <span>📍 {scene.location}</span>
+                  )}
+                  {scene.time_of_day && (
+                    <span>
+                      {TIME_ICONS[scene.time_of_day] ?? "🕐"} {scene.time_of_day}
+                    </span>
+                  )}
+                  {scene.source_chapter > 0 && (
+                    <span>📖 第 {scene.source_chapter} 章</span>
+                  )}
+                  {scene.characters.length > 0 && (
+                    <span>🎭 {scene.characters.join("、")}</span>
+                  )}
+                </div>
+
+                {/* Scene elements */}
+                <div className="space-y-1">
+                  {scene.elements.map((elem, i) => {
+                    const baseStyle = TYPE_STYLES[elem.type] ?? "text-zinc-700";
+                    if (elem.type === "parenthetical") {
+                      return (
+                        <p key={i} className={baseStyle}>
+                          ({elem.content})
+                        </p>
+                      );
+                    }
                     return (
                       <p key={i} className={baseStyle}>
                         {elem.content}
                       </p>
                     );
-                  }
-                  if (elem.type === "dialogue") {
-                    return (
-                      <p key={i} className={baseStyle}>
-                        {elem.content}
-                      </p>
-                    );
-                  }
-                  if (elem.type === "parenthetical") {
-                    return (
-                      <p key={i} className={baseStyle}>
-                        ({elem.content})
-                      </p>
-                    );
-                  }
-                  return (
-                    <p key={i} className={baseStyle}>
-                      {elem.content}
-                    </p>
-                  );
-                })}
+                  })}
+                </div>
               </section>
             ))}
-
-            {screenplay.scenes.length === 0 && (
-              <p className="text-center text-zinc-400">暂无场景内容</p>
-            )}
           </div>
+
+          {screenplay.scenes.length === 0 && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center">
+              <p className="text-zinc-400">暂无场景内容</p>
+            </div>
+          )}
         </>
       )}
     </main>
