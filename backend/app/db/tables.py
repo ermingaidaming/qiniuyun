@@ -95,3 +95,48 @@ class SceneElementTable(Base):
     position: Mapped[int] = mapped_column(Integer, default=0)
 
     scene: Mapped[SceneTable] = relationship("SceneTable", back_populates="elements")
+
+
+class CausalGraphTable(Base):
+    __tablename__ = "cpc_graphs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    novel_id: Mapped[str] = mapped_column(String(36), ForeignKey("novels.id"), unique=True, nullable=False)
+    dag_valid: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+    novel: Mapped[NovelTable] = relationship("NovelTable")
+    events: Mapped[list[EventTable]] = relationship(
+        "EventTable", back_populates="graph", cascade="all, delete-orphan", lazy="selectin"
+    )
+    relations: Mapped[list[CausalRelationTable]] = relationship(
+        "CausalRelationTable", back_populates="graph", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class EventTable(Base):
+    __tablename__ = "cpc_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    graph_id: Mapped[str] = mapped_column(String(36), ForeignKey("cpc_graphs.id"), nullable=False)
+    index: Mapped[int] = mapped_column(Integer)
+    chapter_index: Mapped[int] = mapped_column(Integer)
+    description: Mapped[str] = mapped_column(String)
+    characters: Mapped[list[str]] = mapped_column(JSON, default=list)
+    location: Mapped[str] = mapped_column(String(200), default="")
+    time: Mapped[str] = mapped_column(String(100), default="")
+
+    graph: Mapped[CausalGraphTable] = relationship("CausalGraphTable", back_populates="events")
+
+
+class CausalRelationTable(Base):
+    __tablename__ = "cpc_relations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    graph_id: Mapped[str] = mapped_column(String(36), ForeignKey("cpc_graphs.id"), nullable=False)
+    source_event_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    target_event_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    relation_type: Mapped[str] = mapped_column(String(20))
+    confidence: Mapped[float] = mapped_column(default=1.0)
+
+    graph: Mapped[CausalGraphTable] = relationship("CausalGraphTable", back_populates="relations")

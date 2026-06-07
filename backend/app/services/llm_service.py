@@ -54,14 +54,8 @@ USER_PROMPT_TEMPLATE = """请将以下小说章节片段转化为剧本格式：
 """
 
 
-async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> list[dict[str, Any]]:
-    """Call LLM to convert a single chapter into screenplay scenes.
-
-    Returns a list of scene dicts parsed from the LLM response.
-    """
-    if not settings.llm_api_key:
-        return _mock_convert(chapter_title, chapter_content)
-
+async def _call_llm(system_prompt: str, user_prompt: str, *, temperature: float = 0.7, max_tokens: int = 4096) -> str:
+    """Generic LLM call. Returns the content of the first choice."""
     async with AsyncClient(timeout=120.0) as client:
         response = await client.post(
             f"{settings.llm_base_url}/chat/completions",
@@ -72,14 +66,11 @@ async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> 
             json={
                 "model": settings.llm_model,
                 "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": USER_PROMPT_TEMPLATE.format(
-                        chapter_title=chapter_title,
-                        chapter_content=chapter_content[: settings.max_chapter_length_chars],
-                    )},
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
                 ],
-                "temperature": 0.7,
-                "max_tokens": 4096,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
             },
         )
 
@@ -87,8 +78,24 @@ async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> 
         raise RuntimeError(f"LLM API error: {response.status_code} {response.text[:200]}")
 
     data = response.json()
-    raw = data["choices"][0]["message"]["content"]
+    return cast(str, data["choices"][0]["message"]["content"])
 
+
+async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> list[dict[str, Any]]:
+    """Call LLM to convert a single chapter into screenplay scenes.
+
+    Returns a list of scene dicts parsed from the LLM response.
+    """
+    if not settings.llm_api_key:
+        return _mock_convert(chapter_title, chapter_content)
+
+    raw = await _call_llm(
+        SYSTEM_PROMPT,
+        USER_PROMPT_TEMPLATE.format(
+            chapter_title=chapter_title,
+            chapter_content=chapter_content[: settings.max_chapter_length_chars],
+        ),
+    )
     return _parse_llm_json(raw)
 
 
@@ -172,3 +179,160 @@ def _mock_convert(chapter_title: str, chapter_content: str) -> list[dict[str, An
             elements.append({"type": "action", "content": line})
 
     return [{"setting": chapter_title, "elements": elements}]
+
+
+# ── CPC Event Extraction ─────────────────────────────────────────────
+
+CPC_EVENT_SYSTEM_PROMPT = """你是一位专业的文学分析师。请从小说文本中提取所有关键剧情事件。
+
+## 输出要求
+
+你必须返回一个严格的 JSON 对象：
+```json
+{
+  "events": [
+    {
+      "description": "事件描述（一句话概括）",
+      "characters": ["参与角色1", "参与角色2"],
+      "location": "发生地点",
+      "time": "发生时间"
+    }
+  ]
+}
+```
+
+## 规则
+
+1. 每个事件必须是独立的、推动剧情发展的关键节点。
+2. 同一个场景中可能包含多个事件，请逐一提取。
+3. 角色名使用中文原名。
+4. 如果无法确定地点或时间，使用空字符串 ""。
+5. JSON 必须合法，不要输出 Markdown 代码块包裹。
+"""
+
+CPC_EVENT_USER_TEMPLATE = """请从以下小说章节中提取关键事件：
+
+## 章节：{chapter_title}
+
+{chapter_content}
+"""
+
+CPC_RELATION_SYSTEM_PROMPT = """你是一位专业的文学分析师。请分析以下事件之间的因果关系和时序关系。
+
+## 输出要求
+
+返回一个严格的 JSON 对象：
+```json
+{
+  "relations": [
+    {
+      "source_event_id": "事件A的id",
+      "target_event_id": "事件B的id",
+      "relation_type": "causes|before|references",
+      "confidence": 0.9
+    }
+  ]
+}
+```
+
+## 关系类型说明
+
+- **causes**: A 直接导致 B 发生（因果关系）
+- **before**: A 在 B 之前发生（时序关系）
+- **references**: A 和 B 提及同一事物或角色（引用关系）
+
+## 规则
+
+1. 只标注明确存在的关系，不要猜测。
+2. confidence 取值 0.0-1.0：1.0 = 非常确定，0.5 = 可能有关。
+3. JSON 必须合法，不要输出 Markdown 代码块包裹。
+"""
+
+CPC_RELATION_USER_TEMPLATE = """请分析以下事件的因果关系：
+
+{events_json}
+"""
+
+
+async def extract_events_from_chapter(chapter_title: str, chapter_content: str) -> list[dict[str, Any]]:
+    """Extract key plot events from a chapter via LLM."""
+    if not settings.llm_api_key:
+        return _mock_extract_events(chapter_title, chapter_content)
+
+    raw = await _call_llm(
+        CPC_EVENT_SYSTEM_PROMPT,
+        CPC_EVENT_USER_TEMPLATE.format(
+            chapter_title=chapter_title,
+            chapter_content=chapter_content[: settings.max_chapter_length_chars],
+        ),
+    )
+    parsed = _parse_json_field(raw, "events")
+    return parsed
+
+
+async def identify_event_relations(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Identify causal and temporal relationships between events via LLM."""
+    if not settings.llm_api_key:
+        return []
+
+    raw = await _call_llm(
+        CPC_RELATION_SYSTEM_PROMPT,
+        CPC_RELATION_USER_TEMPLATE.format(events_json=json.dumps(events, ensure_ascii=False)),
+        max_tokens=8192,
+    )
+    parsed = _parse_json_field(raw, "relations")
+    return parsed
+
+
+def _parse_json_field(raw: str, field: str) -> list[dict[str, Any]]:
+    """Parse LLM response, extracting a named list field. Handles common formatting issues."""
+    # Try direct JSON parse
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict) and field in data:
+            return cast(list[dict[str, Any]], data[field])
+    except json.JSONDecodeError:
+        pass
+
+    # Try markdown code block
+    code_block = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
+    if code_block:
+        try:
+            data = json.loads(code_block.group(1))
+            if isinstance(data, dict) and field in data:
+                return cast(list[dict[str, Any]], data[field])
+        except json.JSONDecodeError:
+            pass
+
+    # Try to find JSON object in text
+    brace_start = raw.find("{")
+    brace_end = raw.rfind("}")
+    if brace_start != -1 and brace_end != -1:
+        try:
+            data = json.loads(raw[brace_start : brace_end + 1])
+            if isinstance(data, dict) and field in data:
+                return cast(list[dict[str, Any]], data[field])
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(f"Failed to parse LLM response JSON (field={field}). Raw: {raw[:200]}...")
+
+
+def _mock_extract_events(chapter_title: str, chapter_content: str) -> list[dict[str, Any]]:
+    """Mock event extraction for testing without LLM."""
+    events: list[dict[str, Any]] = []
+    for line in chapter_content.splitlines():
+        line = line.strip()
+        if len(line) < 5:
+            continue
+        # Heuristic: lines with dialogue markers indicate key events
+        if any(kw in line for kw in ("说", "道", "来", "去", "走", "看", "见", "笑", "哭")):
+            events.append({
+                "description": line[:80],
+                "characters": [],
+                "location": "",
+                "time": "",
+            })
+    if not events:
+        events.append({"description": f"{chapter_title} 的主要情节", "characters": [], "location": "", "time": ""})
+    return events[:10]  # Limit to 10 mock events per chapter
