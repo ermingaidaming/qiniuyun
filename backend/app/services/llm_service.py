@@ -95,6 +95,7 @@ async def convert_chapter_to_scene(chapter_title: str, chapter_content: str) -> 
             chapter_title=chapter_title,
             chapter_content=chapter_content[: settings.max_chapter_length_chars],
         ),
+        max_tokens=8192,
     )
     return _parse_llm_json(raw)
 

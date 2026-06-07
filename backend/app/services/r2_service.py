@@ -74,6 +74,7 @@ async def scan_novel(novel: Novel) -> R2ScanResult:
             raw = await _call_llm(
                 SYSTEM_PROMPT,
                 R2_USER_TEMPLATE.format(window_content=win["text"]),
+                max_tokens=8192,
             )
             raw_scenes = _parse_llm_json(raw)
             for raw_scene in raw_scenes:
