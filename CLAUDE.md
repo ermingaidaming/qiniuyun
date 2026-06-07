@@ -549,9 +549,9 @@ npm run build                         # 生产构建成功
 | 文件 | 内容 |
 |------|------|
 | [README.md](README.md) | 项目介绍、技术栈、本地运行 |
+| [docs/screenyaml-schema.md](docs/screenyaml-schema.md) | ScreenYAML 结构化剧本格式定义 |
+| [docs/api-contract.md](docs/api-contract.md) | API 接口文档 |
 | [docs/architecture.md](docs/architecture.md) | 架构设计与模块拆分 |
-| [docs/development-plan.md](docs/development-plan.md) | 持续交付计划与阶段划分 |
-| [docs/repository-setup.md](docs/repository-setup.md) | 仓库创建与 PR 流程 |
 | [docs/submission-checklist.md](docs/submission-checklist.md) | 提交合规检查清单 |
 | [docs/demo-video-script.md](docs/demo-video-script.md) | Demo 视频脚本 |
 | [.github/pull_request_template.md](.github/pull_request_template.md) | GitHub PR 模板 |

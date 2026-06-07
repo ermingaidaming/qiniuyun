@@ -35,7 +35,10 @@ async def generate_screenplay(novel: Novel) -> Screenplay:
                     Scene(
                         index=scene_index,
                         setting=raw.get("setting", chapter.title),
+                        location=raw.get("location", ""),
+                        time_of_day=raw.get("time", ""),
                         source_chapter=chapter.index,
+                        characters=raw.get("characters", []),
                         elements=elements,
                     )
                 )

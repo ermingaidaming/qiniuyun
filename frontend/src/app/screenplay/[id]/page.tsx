@@ -14,6 +14,13 @@ const TYPE_STYLES: Record<SceneElementType, string> = {
   parenthetical: "mx-14 text-sm text-ink-muted italic",
 };
 
+const TYPE_BADGES: Record<SceneElementType, { label: string; cls: string }> = {
+  action:    { label: "动作", cls: "bg-blue-50 text-blue-600 border-blue-200" },
+  character: { label: "角色", cls: "bg-amber-50 text-amber-600 border-amber-200" },
+  dialogue:  { label: "对话", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+  parenthetical: { label: "提示", cls: "bg-purple-50 text-purple-500 border-purple-200" },
+};
+
 const TIME_ICONS: Record<string, string> = {
   "日": "☀️",
   "夜": "🌙",
@@ -194,13 +201,49 @@ export default function ScreenplayPage() {
                   {scene.characters.length > 0 && <span>🎭 {scene.characters.join("、")}</span>}
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {scene.elements.map((elem, i) => {
-                    const cls = TYPE_STYLES[elem.type] ?? "text-ink";
-                    if (elem.type === "parenthetical") {
-                      return <p key={i} className={cls}>({elem.content})</p>;
+                    const badge = TYPE_BADGES[elem.type] ?? TYPE_BADGES.action;
+                    const chip = (
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border shrink-0 select-none w-10 text-center ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    );
+                    if (elem.type === "character") {
+                      return (
+                        <div key={i} className="flex items-center gap-2.5">
+                          {chip}
+                          <span className="font-bold text-ink text-sm tracking-wide">{elem.content}</span>
+                        </div>
+                      );
                     }
-                    return <p key={i} className={cls}>{elem.content}</p>;
+                    if (elem.type === "dialogue") {
+                      return (
+                        <div key={i} className="flex items-start gap-2.5">
+                          {chip}
+                          <span className="text-ink/90 leading-relaxed">
+                            <span className="font-semibold text-ink/70">{elem.character || "?"}</span>
+                            <span className="text-ink/30 select-none">：「</span>
+                            {elem.content}
+                            <span className="text-ink/30 select-none">」</span>
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (elem.type === "parenthetical") {
+                      return (
+                        <div key={i} className="flex items-center gap-2.5">
+                          {chip}
+                          <span className="text-sm text-ink-muted italic">（{elem.content}）</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={i} className="flex items-start gap-2.5">
+                        {chip}
+                        <span className="text-ink leading-relaxed">{elem.content}</span>
+                      </div>
+                    );
                   })}
                 </div>
               </section>
