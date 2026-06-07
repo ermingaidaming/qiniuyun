@@ -35,35 +35,40 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4">
-      <div className="w-full max-w-lg">
-        <header className="text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-            AI 小说转剧本
+    <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
+      <div className="w-full max-w-xl">
+        {/* Hero */}
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-bold tracking-tight text-ink">
+            AI 小说
+            <span className="text-accent">转</span>
+            剧本
           </h1>
-          <p className="mt-2 text-zinc-500">
-            上传小说 TXT 文件，自动生成结构化剧本
+          <p className="mt-3 text-ink-muted text-lg">
+            将文字淬炼为光影，小说一键转写结构化剧本
           </p>
         </header>
 
-        {/* Upload area */}
-        <div className="rounded-xl border-2 border-dashed border-zinc-300 bg-white p-10 text-center transition-colors hover:border-zinc-400">
+        {/* Upload card */}
+        <div className="rounded-2xl border border-border bg-card p-10 shadow-sm transition-all duration-300 hover:shadow-md">
           {result ? (
             /* Success state */
-            <div className="space-y-3">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <div className="space-y-4 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft/20">
+                <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-lg font-semibold text-zinc-900">{result.title}</p>
-              <p className="text-sm text-zinc-500">
-                共 {result.chapterCount} 个章节
-              </p>
-              <div className="flex gap-3 justify-center pt-2">
+              <div>
+                <p className="text-xl font-semibold text-ink">{result.title}</p>
+                <p className="text-ink-faint mt-1">
+                  共 {result.chapterCount} 个章节
+                </p>
+              </div>
+              <div className="flex gap-3 justify-center pt-3">
                 <button
                   onClick={() => router.push(`/screenplay/${result.novelId}`)}
-                  className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
+                  className="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white hover:bg-accent/85 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
                 >
                   生成剧本
                 </button>
@@ -72,7 +77,7 @@ export default function Home() {
                     setResult(null);
                     setFile(null);
                   }}
-                  className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  className="rounded-xl border border-border px-6 py-3 text-sm font-semibold text-ink-muted hover:bg-paper-dark transition-all duration-200 active:scale-[0.98]"
                 >
                   重新上传
                 </button>
@@ -80,15 +85,19 @@ export default function Home() {
             </div>
           ) : (
             /* Upload prompt */
-            <div className="space-y-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100">
-                <svg className="h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            <div className="space-y-5 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-paper-dark">
+                <svg className="h-8 w-8 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
-              <label className="block cursor-pointer">
-                <span className="text-sm font-semibold text-teal-600 hover:text-teal-700">
-                  {file ? file.name : "点击选择 TXT 文件"}
+              <div>
+                <p className="text-ink font-medium">将小说文件拖拽到此处</p>
+                <p className="text-ink-faint text-sm mt-1">支持 .txt 格式，UTF-8 编码</p>
+              </div>
+              <label className="inline-block cursor-pointer">
+                <span className="rounded-xl border border-border-strong px-6 py-2.5 text-sm font-medium text-ink-muted hover:border-accent-soft hover:text-accent transition-all duration-200">
+                  {file ? file.name : "选择 TXT 文件"}
                 </span>
                 <input
                   type="file"
@@ -103,7 +112,6 @@ export default function Home() {
                   }}
                 />
               </label>
-              <p className="text-xs text-zinc-400">或拖拽文件到此处，最大 500KB</p>
             </div>
           )}
         </div>
@@ -112,14 +120,14 @@ export default function Home() {
           <button
             onClick={handleUpload}
             disabled={uploading}
-            className="mt-4 w-full rounded-lg bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+            className="mt-5 w-full rounded-xl bg-accent py-3.5 text-sm font-semibold text-white hover:bg-accent/85 disabled:opacity-50 transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
           >
-            {uploading ? "解析中..." : "上传并解析"}
+            {uploading ? "正在解析章节..." : "上传并解析"}
           </button>
         )}
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700 text-center">
             {error}
           </div>
         )}
