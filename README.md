@@ -246,7 +246,7 @@ poetry run pytest --cov=app --cov-report=term-missing
 
 ## Demo 视频
 
-> TODO: 补充视频链接
+【屏幕录制 2026-06-08 130819】 https://www.bilibili.com/video/BV1LNEu6iE2R/?share_source=copy_web&vd_source=364b72518d4cfe5b96cddd623a7659d6
 
 ---
 
